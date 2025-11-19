@@ -102,9 +102,9 @@ import {
     getUser
 } from './db';
 
-const RP_NAME = 'OAuth Simulator';
-const RP_ID = 'localhost'; // Should be configured based on env
-const ORIGIN = 'http://localhost:3000'; // Should be configured based on env
+const RP_NAME = process.env.RP_NAME || 'OAuth Simulator';
+const RP_ID = process.env.RP_ID || 'localhost';
+const ORIGIN = process.env.RP_ORIGIN || 'http://localhost:3000';
 
 // WebAuthn Registration
 export async function generateWebAuthnRegistrationOptions(userId: string) {

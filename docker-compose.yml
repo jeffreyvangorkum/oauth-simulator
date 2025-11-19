@@ -7,6 +7,9 @@ services:
     environment:
       - JWT_SECRET=your-secret-key-change-me
       - ENABLE_REGISTRATION=true
+      - RP_ID=localhost
+      - RP_NAME=OAuth Simulator
+      - RP_ORIGIN=http://localhost:3000
       - NODE_ENV=production
       - APP_URL=http://localhost:3000
     volumes:
