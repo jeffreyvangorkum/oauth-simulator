@@ -61,3 +61,9 @@ The application uses the following environment variables (defined in `docker-com
 
 - `APP_PASSWORD`: The password for the application login (default: `admin`).
 - `NODE_ENV`: Node environment (default: `production`).
+
+---
+
+<p align="center">
+  Built with ❤️ using <strong>Antigravity</strong> by Google DeepMind.
+</p>
