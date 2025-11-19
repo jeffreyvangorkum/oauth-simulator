@@ -11,6 +11,7 @@ export const OAuthClientSchema = z.object({
     tokenUrl: z.string().url(),
     scope: z.string().optional(),
     redirectUri: z.string().url(),
+    customAttributes: z.record(z.string(), z.string()).optional(),
 });
 
 export type OAuthClient = z.infer<typeof OAuthClientSchema> & { id: string };
@@ -26,6 +27,7 @@ function mapClient(client: Client): OAuthClient {
         tokenUrl: client.token_url,
         scope: client.scope,
         redirectUri: client.redirect_uri,
+        customAttributes: client.custom_attributes ? JSON.parse(client.custom_attributes) : undefined,
     };
 }
 
@@ -53,6 +55,7 @@ export async function saveClient(clientData: OAuthClient): Promise<void> {
         token_url: clientData.tokenUrl,
         scope: clientData.scope,
         redirect_uri: clientData.redirectUri,
+        custom_attributes: clientData.customAttributes ? JSON.stringify(clientData.customAttributes) : undefined,
     };
 
     if (existing) {

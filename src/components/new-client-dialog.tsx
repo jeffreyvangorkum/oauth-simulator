@@ -25,6 +25,8 @@ export function NewClientDialog({ defaultDomain = 'http://localhost:3000' }: { d
     const [authUrl, setAuthUrl] = useState('');
     const [tokenUrl, setTokenUrl] = useState('');
 
+    const [customAttributes, setCustomAttributes] = useState<{ key: string; value: string }[]>([]);
+
     async function handleDiscover() {
         if (!oidcUrl) return;
         setDiscovering(true);
@@ -41,8 +43,30 @@ export function NewClientDialog({ defaultDomain = 'http://localhost:3000' }: { d
         }
     }
 
+    function addAttribute() {
+        setCustomAttributes([...customAttributes, { key: '', value: '' }]);
+    }
+
+    function removeAttribute(index: number) {
+        setCustomAttributes(customAttributes.filter((_, i) => i !== index));
+    }
+
+    function updateAttribute(index: number, field: 'key' | 'value', value: string) {
+        const newAttributes = [...customAttributes];
+        newAttributes[index][field] = value;
+        setCustomAttributes(newAttributes);
+    }
+
     async function handleSubmit(formData: FormData) {
         setLoading(true);
+
+        const attributesRecord: Record<string, string> = {};
+        customAttributes.forEach(attr => {
+            if (attr.key.trim()) {
+                attributesRecord[attr.key.trim()] = attr.value;
+            }
+        });
+
         const data = {
             name: formData.get('name') as string,
             clientId: formData.get('clientId') as string,
@@ -51,11 +75,13 @@ export function NewClientDialog({ defaultDomain = 'http://localhost:3000' }: { d
             tokenUrl: formData.get('tokenUrl') as string,
             scope: formData.get('scope') as string,
             redirectUri: formData.get('redirectUri') as string,
+            customAttributes: attributesRecord,
         };
 
         await saveClientAction(data);
         setLoading(false);
         setOpen(false);
+        setCustomAttributes([]); // Reset attributes
     }
 
     return (
@@ -65,7 +91,7 @@ export function NewClientDialog({ defaultDomain = 'http://localhost:3000' }: { d
                     <Plus className="mr-2 h-4 w-4" /> New Client
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Add OAuth Client</DialogTitle>
                     <DialogDescription>
@@ -144,6 +170,47 @@ export function NewClientDialog({ defaultDomain = 'http://localhost:3000' }: { d
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="scope" className="text-right">Scope</Label>
                             <Input id="scope" name="scope" placeholder="openid profile" className="col-span-3" />
+                        </div>
+
+                        <div className="border-t pt-4 mt-2">
+                            <div className="flex justify-between items-center mb-2">
+                                <Label className="text-sm font-semibold">Custom Attributes</Label>
+                                <Button type="button" variant="outline" size="sm" onClick={addAttribute}>
+                                    <Plus className="h-3 w-3 mr-1" /> Add
+                                </Button>
+                            </div>
+                            <div className="space-y-2">
+                                {customAttributes.map((attr, index) => (
+                                    <div key={index} className="flex gap-2">
+                                        <Input
+                                            placeholder="Key"
+                                            value={attr.key}
+                                            onChange={(e) => updateAttribute(index, 'key', e.target.value)}
+                                            className="flex-1"
+                                        />
+                                        <Input
+                                            placeholder="Value"
+                                            value={attr.value}
+                                            onChange={(e) => updateAttribute(index, 'value', e.target.value)}
+                                            className="flex-1"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => removeAttribute(index)}
+                                            className="text-red-500 hover:text-red-600"
+                                        >
+                                            &times;
+                                        </Button>
+                                    </div>
+                                ))}
+                                {customAttributes.length === 0 && (
+                                    <p className="text-xs text-muted-foreground text-center py-2">
+                                        No custom attributes added.
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>

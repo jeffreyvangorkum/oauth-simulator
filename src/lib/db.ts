@@ -32,6 +32,7 @@ db.exec(`
         token_url TEXT NOT NULL,
         scope TEXT,
         redirect_uri TEXT NOT NULL,
+        custom_attributes TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
     );
@@ -77,6 +78,7 @@ export interface Client {
     token_url: string;
     scope?: string;
     redirect_uri: string;
+    custom_attributes?: string;
     created_at: string;
 }
 
@@ -99,15 +101,16 @@ export function migrateLegacyClients() {
                 }
 
                 const insertStmt = db.prepare(`
-                    INSERT OR IGNORE INTO clients (id, user_id, name, client_id, client_secret, authorize_url, token_url, scope, redirect_uri)
-                    VALUES (@id, @user_id, @name, @clientId, @clientSecret, @authorizeUrl, @tokenUrl, @scope, @redirectUri)
+                    INSERT OR IGNORE INTO clients (id, user_id, name, client_id, client_secret, authorize_url, token_url, scope, redirect_uri, custom_attributes)
+                    VALUES (@id, @user_id, @name, @clientId, @clientSecret, @authorizeUrl, @tokenUrl, @scope, @redirectUri, @customAttributes)
                 `);
 
                 const insertMany = db.transaction((clients) => {
                     for (const client of clients) {
                         insertStmt.run({
                             ...client,
-                            user_id: adminUser!.id
+                            user_id: adminUser!.id,
+                            customAttributes: client.customAttributes ? JSON.stringify(client.customAttributes) : null
                         });
                     }
                 });
@@ -188,7 +191,13 @@ export function updateAuthenticatorCounter(credentialID: string, counter: number
 
 // Client functions
 export function getClientsByUserId(userId: string): Client[] {
-    return db.prepare('SELECT * FROM clients WHERE user_id = ?').all(userId) as Client[];
+    // Ensure custom_attributes column exists
+    try {
+        return db.prepare('SELECT * FROM clients WHERE user_id = ?').all(userId) as Client[];
+    } catch (e) {
+        db.exec('ALTER TABLE clients ADD COLUMN custom_attributes TEXT');
+        return db.prepare('SELECT * FROM clients WHERE user_id = ?').all(userId) as Client[];
+    }
 }
 
 export function getClientById(id: string): Client | undefined {
@@ -197,8 +206,8 @@ export function getClientById(id: string): Client | undefined {
 
 export function createClient(client: Omit<Client, 'created_at'>) {
     const stmt = db.prepare(`
-        INSERT INTO clients (id, user_id, name, client_id, client_secret, authorize_url, token_url, scope, redirect_uri)
-        VALUES (@id, @user_id, @name, @client_id, @client_secret, @authorize_url, @token_url, @scope, @redirect_uri)
+        INSERT INTO clients (id, user_id, name, client_id, client_secret, authorize_url, token_url, scope, redirect_uri, custom_attributes)
+        VALUES (@id, @user_id, @name, @client_id, @client_secret, @authorize_url, @token_url, @scope, @redirect_uri, @custom_attributes)
     `);
     stmt.run(client);
 }
@@ -212,7 +221,8 @@ export function updateClient(client: Client) {
             authorize_url = @authorize_url, 
             token_url = @token_url, 
             scope = @scope, 
-            redirect_uri = @redirect_uri
+            redirect_uri = @redirect_uri,
+            custom_attributes = @custom_attributes
         WHERE id = @id AND user_id = @user_id
     `);
     stmt.run(client);

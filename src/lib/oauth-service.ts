@@ -25,6 +25,14 @@ export function generateAuthorizeUrl(client: OAuthClient, state: string): string
     if (client.scope) {
         url.searchParams.append('scope', client.scope);
     }
+
+    // Add custom attributes
+    if (client.customAttributes) {
+        Object.entries(client.customAttributes).forEach(([key, value]) => {
+            url.searchParams.append(key, value);
+        });
+    }
+
     url.searchParams.append('state', state);
     return url.toString();
 }
