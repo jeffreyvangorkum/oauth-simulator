@@ -6,6 +6,7 @@ services:
       - "3000:3000"
     environment:
       - JWT_SECRET=your-secret-key-change-me
+      - ENABLE_REGISTRATION=true
       - NODE_ENV=production
       - APP_URL=http://localhost:3000
     volumes:

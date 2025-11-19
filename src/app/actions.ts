@@ -28,6 +28,11 @@ export async function loginWithMfaAction(username: string, token: string) {
 }
 
 export async function registerAction(prevState: any, formData: FormData) {
+    const { isRegistrationEnabled } = await import('@/lib/config');
+    if (!isRegistrationEnabled()) {
+        return { error: 'Registration is currently disabled' };
+    }
+
     const username = formData.get('username') as string;
     const password = formData.get('password') as string;
     const confirmPassword = formData.get('confirmPassword') as string;

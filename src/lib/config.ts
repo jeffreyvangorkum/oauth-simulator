@@ -83,3 +83,7 @@ export async function getClient(id: string): Promise<OAuthClient | undefined> {
 
     return mapClient(client);
 }
+
+export function isRegistrationEnabled(): boolean {
+    return process.env.ENABLE_REGISTRATION !== 'false';
+}
