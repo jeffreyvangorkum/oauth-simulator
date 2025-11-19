@@ -9,6 +9,5 @@ services:
       - NODE_ENV=production
       - APP_URL=http://localhost:3000
     volumes:
-      - ./clients.json:/app/clients.json
       - ./data:/app/data
     restart: unless-stopped
