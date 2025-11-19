@@ -56,7 +56,11 @@ export default function ClientView({ client }: { client: OAuthClient }) {
         setError(null);
         try {
             const result = await executeClientCredentialsFlow(client.id);
-            setTokens(result);
+            if (result.success) {
+                setTokens(result.tokens as TokenResponse);
+            } else {
+                setError(result.error as string);
+            }
         } catch (e: any) {
             setError(e.message || 'Flow failed');
         } finally {

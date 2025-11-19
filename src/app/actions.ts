@@ -36,10 +36,50 @@ export async function deleteClientAction(id: string) {
 }
 
 export async function executeClientCredentialsFlow(clientId: string) {
-    const { getClient } = await import('@/lib/config');
-    const { clientCredentialsFlow } = await import('@/lib/oauth-service');
+    try {
+        const { getClient } = await import('@/lib/config');
+        const { clientCredentialsFlow } = await import('@/lib/oauth-service');
 
-    const client = await getClient(clientId);
-    if (!client) throw new Error('Client not found');
-    return await clientCredentialsFlow(client);
+        const client = await getClient(clientId);
+        if (!client) return { success: false, error: 'Client not found' };
+
+        const tokens = await clientCredentialsFlow(client);
+        return { success: true, tokens };
+    } catch (e: any) {
+        console.error('Client Credentials Flow Error:', e);
+        return { success: false, error: e.message || 'An unexpected error occurred' };
+    }
+}
+
+export async function discoverOidcAction(url: string) {
+    // Ensure we have a valid URL to start with
+    let targetUrl = url;
+    if (!targetUrl.startsWith('http')) {
+        targetUrl = `https://${targetUrl}`;
+    }
+
+    // If it doesn't end with the config path, try appending it
+    // Common pattern: issuer URL provided -> append /.well-known/openid-configuration
+    if (!targetUrl.includes('/.well-known/openid-configuration')) {
+        // Handle trailing slash
+        const baseUrl = targetUrl.endsWith('/') ? targetUrl.slice(0, -1) : targetUrl;
+        targetUrl = `${baseUrl}/.well-known/openid-configuration`;
+    }
+
+    try {
+        const response = await fetch(targetUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch OIDC config: ${response.statusText}`);
+        }
+        const config = await response.json();
+
+        return {
+            authorization_endpoint: config.authorization_endpoint,
+            token_endpoint: config.token_endpoint,
+            issuer: config.issuer, // Optional but good to have
+        };
+    } catch (error: any) {
+        console.error('OIDC Discovery failed:', error);
+        throw new Error(error.message || 'Failed to discover OIDC configuration');
+    }
 }
