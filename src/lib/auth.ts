@@ -87,6 +87,135 @@ export async function register(username: string, password: string): Promise<{ su
     return login(username, password);
 }
 
+import {
+    generateRegistrationOptions,
+    verifyRegistrationResponse,
+    generateAuthenticationOptions,
+    verifyAuthenticationResponse
+} from '@simplewebauthn/server';
+import {
+    updateUserChallenge,
+    getUserAuthenticators,
+    saveAuthenticator,
+    getAuthenticator,
+    updateAuthenticatorCounter,
+    getUser
+} from './db';
+
+const RP_NAME = 'OAuth Simulator';
+const RP_ID = 'localhost'; // Should be configured based on env
+const ORIGIN = 'http://localhost:3000'; // Should be configured based on env
+
+// WebAuthn Registration
+export async function generateWebAuthnRegistrationOptions(userId: string) {
+    const user = getUser(userId);
+    if (!user) throw new Error('User not found');
+
+    const userAuthenticators = getUserAuthenticators(userId);
+
+    const options = await generateRegistrationOptions({
+        rpName: RP_NAME,
+        rpID: RP_ID,
+        userID: Buffer.from(user.id),
+        userName: user.username,
+        attestationType: 'none',
+        excludeCredentials: userAuthenticators.map(auth => ({
+            id: auth.credentialID,
+            type: 'public-key',
+            transports: auth.transports ? JSON.parse(auth.transports) : undefined,
+        })),
+        authenticatorSelection: {
+            residentKey: 'preferred',
+            userVerification: 'preferred',
+            authenticatorAttachment: 'platform',
+        },
+    });
+
+    updateUserChallenge(user.id, options.challenge);
+    return options;
+}
+
+export async function verifyWebAuthnRegistration(userId: string, response: any) {
+    const user = getUser(userId);
+    if (!user || !user.current_challenge) throw new Error('Invalid challenge');
+
+    const verification = await verifyRegistrationResponse({
+        response,
+        expectedChallenge: user.current_challenge,
+        expectedOrigin: ORIGIN,
+        expectedRPID: RP_ID,
+    });
+
+    if (verification.verified && verification.registrationInfo) {
+        const { credential, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
+
+        saveAuthenticator({
+            credentialID: credential.id,
+            credentialPublicKey: Buffer.from(credential.publicKey).toString('base64'),
+            counter: credential.counter,
+            credentialDeviceType,
+            credentialBackedUp,
+            user_id: userId,
+            transports: response.response.transports ? JSON.stringify(response.response.transports) : undefined,
+        });
+
+        updateUserChallenge(user.id, null); // Clear challenge
+        return { success: true };
+    }
+
+    return { success: false };
+}
+
+// WebAuthn Login
+export async function generateWebAuthnLoginOptions(username: string) {
+    const user = getUserByUsername(username);
+    if (!user) throw new Error('User not found');
+
+    const userAuthenticators = getUserAuthenticators(user.id);
+
+    const options = await generateAuthenticationOptions({
+        rpID: RP_ID,
+        allowCredentials: userAuthenticators.map(auth => ({
+            id: auth.credentialID,
+            type: 'public-key',
+        })),
+        userVerification: 'preferred',
+    });
+
+    updateUserChallenge(user.id, options.challenge);
+    return options;
+}
+
+export async function verifyWebAuthnLogin(username: string, response: any) {
+    const user = getUserByUsername(username);
+    if (!user || !user.current_challenge) throw new Error('Invalid challenge');
+
+    const authenticator = getAuthenticator(response.id);
+    if (!authenticator) throw new Error('Authenticator not found');
+
+    const verification = await verifyAuthenticationResponse({
+        response,
+        expectedChallenge: user.current_challenge,
+        expectedOrigin: ORIGIN,
+        expectedRPID: RP_ID,
+        credential: {
+            id: authenticator.credentialID,
+            publicKey: Buffer.from(authenticator.credentialPublicKey, 'base64'),
+            counter: authenticator.counter,
+            transports: authenticator.transports ? JSON.parse(authenticator.transports) : undefined,
+        },
+    });
+
+    if (verification.verified) {
+        updateAuthenticatorCounter(authenticator.credentialID, verification.authenticationInfo.newCounter);
+        updateUserChallenge(user.id, null);
+
+        return createSession(user);
+    }
+
+    return { success: false, error: 'Verification failed' };
+}
+
 export async function logout(): Promise<void> {
     const cookieStore = await cookies();
     cookieStore.delete(AUTH_COOKIE_NAME);

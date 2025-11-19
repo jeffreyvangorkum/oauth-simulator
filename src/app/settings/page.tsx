@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateTotpSecretAction, verifyTotpAction } from '@/app/actions';
+import { generateTotpSecretAction, verifyTotpAction, generateWebAuthnRegistrationOptionsAction, verifyWebAuthnRegistrationAction } from '@/app/actions';
 import QRCode from 'qrcode';
+import { startRegistration } from '@simplewebauthn/browser';
 
 export default function SettingsPage() {
     const [totpSecret, setTotpSecret] = useState<string | null>(null);
@@ -27,11 +28,28 @@ export default function SettingsPage() {
         if (!totpSecret) return;
         const result = await verifyTotpAction(totpSecret, verificationCode);
         if (result.success) {
-            setMessage('MFA enabled successfully!');
+            setMessage('MFA (TOTP) enabled successfully!');
             setTotpSecret(null);
             setQrCodeUrl(null);
         } else {
             setMessage('Invalid code. Please try again.');
+        }
+    };
+
+    const handleRegisterPasskey = async () => {
+        try {
+            const options = await generateWebAuthnRegistrationOptionsAction();
+            const attResp = await startRegistration({ optionsJSON: options });
+            const verificationResp = await verifyWebAuthnRegistrationAction(attResp);
+
+            if (verificationResp.success) {
+                setMessage('Passkey registered successfully!');
+            } else {
+                setMessage('Passkey registration failed.');
+            }
+        } catch (error) {
+            console.error(error);
+            setMessage('Passkey registration failed: ' + (error as Error).message);
         }
     };
 
@@ -72,6 +90,16 @@ export default function SettingsPage() {
                             {message}
                         </p>
                     )}
+                </CardContent>
+            </Card>
+
+            <Card className="max-w-md mt-6">
+                <CardHeader>
+                    <CardTitle>Passkeys (WebAuthn)</CardTitle>
+                    <CardDescription>Login securely with TouchID, FaceID, or a security key.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button onClick={handleRegisterPasskey} variant="outline">Register New Passkey</Button>
                 </CardContent>
             </Card>
         </div>

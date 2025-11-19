@@ -6,30 +6,25 @@ import { saveClient, deleteClient, OAuthClient } from '@/lib/config';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function loginAction(prevState: any, formData: FormData) {
-    const username = formData.get('username') as string;
-    const password = formData.get('password') as string;
-    const token = formData.get('token') as string;
-
-    if (token) {
-        // MFA Verification Step
-        const result = await loginWithMfa(username, token);
-        if (result.success) {
-            redirect('/');
-        }
-        return { error: result.error || 'Invalid MFA code', mfaRequired: true, username };
-    }
-
+export async function loginAction(username: string, password: string) {
     const result = await login(username, password);
     if (result.success) {
         redirect('/');
     }
 
     if (result.mfaRequired) {
-        return { mfaRequired: true, username };
+        return { success: true, mfaRequired: true, username };
     }
 
-    return { error: result.error || 'Invalid credentials' };
+    return { success: false, error: result.error || 'Invalid credentials' };
+}
+
+export async function loginWithMfaAction(username: string, token: string) {
+    const result = await loginWithMfa(username, token);
+    if (result.success) {
+        redirect('/');
+    }
+    return { success: false, error: result.error || 'Invalid MFA code' };
 }
 
 export async function registerAction(prevState: any, formData: FormData) {
@@ -70,6 +65,38 @@ export async function verifyTotpAction(secret: string, token: string) {
 
     const success = await verifyTotpAndEnable(session.id, secret, token);
     return { success };
+}
+
+// WebAuthn Actions
+import {
+    generateWebAuthnRegistrationOptions,
+    verifyWebAuthnRegistration,
+    generateWebAuthnLoginOptions,
+    verifyWebAuthnLogin
+} from '@/lib/auth';
+
+export async function generateWebAuthnRegistrationOptionsAction() {
+    const session = await getSession();
+    if (!session) throw new Error('Unauthorized');
+    return generateWebAuthnRegistrationOptions(session.id);
+}
+
+export async function verifyWebAuthnRegistrationAction(response: any) {
+    const session = await getSession();
+    if (!session) throw new Error('Unauthorized');
+    return verifyWebAuthnRegistration(session.id, response);
+}
+
+export async function generateWebAuthnLoginOptionsAction(username: string) {
+    return generateWebAuthnLoginOptions(username);
+}
+
+export async function verifyWebAuthnLoginAction(username: string, response: any) {
+    const result = await verifyWebAuthnLogin(username, response);
+    if (result.success) {
+        redirect('/');
+    }
+    return result;
 }
 
 export async function saveClientAction(data: Omit<OAuthClient, 'id'> & { id?: string }) {

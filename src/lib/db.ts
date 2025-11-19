@@ -35,6 +35,17 @@ db.exec(`
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
     );
+
+    CREATE TABLE IF NOT EXISTS authenticators (
+        credentialID TEXT PRIMARY KEY,
+        credentialPublicKey TEXT NOT NULL,
+        counter INTEGER NOT NULL,
+        credentialDeviceType TEXT NOT NULL,
+        credentialBackedUp INTEGER NOT NULL,
+        transports TEXT,
+        user_id TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
 `);
 
 export interface User {
@@ -42,8 +53,18 @@ export interface User {
     username: string;
     password_hash: string;
     totp_secret?: string;
-    webauthn_credentials?: string;
+    current_challenge?: string;
     created_at: string;
+}
+
+export interface Authenticator {
+    credentialID: string;
+    credentialPublicKey: string;
+    counter: number;
+    credentialDeviceType: string;
+    credentialBackedUp: boolean;
+    transports?: string;
+    user_id: string;
 }
 
 export interface Client {
@@ -121,6 +142,48 @@ export function getUserByUsername(username: string): User | undefined {
 
 export function updateUserTotpSecret(userId: string, secret: string | null) {
     db.prepare('UPDATE users SET totp_secret = ? WHERE id = ?').run(secret, userId);
+}
+
+export function updateUserChallenge(userId: string, challenge: string | null) {
+    // Check if column exists, if not add it (simple migration for now)
+    try {
+        db.prepare('UPDATE users SET current_challenge = ? WHERE id = ?').run(challenge, userId);
+    } catch (e) {
+        db.exec('ALTER TABLE users ADD COLUMN current_challenge TEXT');
+        db.prepare('UPDATE users SET current_challenge = ? WHERE id = ?').run(challenge, userId);
+    }
+}
+
+export function getUserAuthenticators(userId: string): Authenticator[] {
+    const auths = db.prepare('SELECT * FROM authenticators WHERE user_id = ?').all(userId) as any[];
+    return auths.map(a => ({
+        ...a,
+        credentialBackedUp: !!a.credentialBackedUp
+    }));
+}
+
+export function saveAuthenticator(auth: Authenticator) {
+    const stmt = db.prepare(`
+        INSERT INTO authenticators (credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp, transports, user_id)
+        VALUES (@credentialID, @credentialPublicKey, @counter, @credentialDeviceType, @credentialBackedUp, @transports, @user_id)
+    `);
+    stmt.run({
+        ...auth,
+        credentialBackedUp: auth.credentialBackedUp ? 1 : 0
+    });
+}
+
+export function getAuthenticator(credentialID: string): Authenticator | undefined {
+    const auth = db.prepare('SELECT * FROM authenticators WHERE credentialID = ?').get(credentialID) as any;
+    if (!auth) return undefined;
+    return {
+        ...auth,
+        credentialBackedUp: !!auth.credentialBackedUp
+    };
+}
+
+export function updateAuthenticatorCounter(credentialID: string, counter: number) {
+    db.prepare('UPDATE authenticators SET counter = ? WHERE credentialID = ?').run(counter, credentialID);
 }
 
 // Client functions
