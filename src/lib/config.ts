@@ -1,11 +1,9 @@
-import fs from 'fs/promises';
-import path from 'path';
 import { z } from 'zod';
-
-const CONFIG_FILE = path.join(process.cwd(), 'clients.json');
+import { getClientsByUserId, getClientById, createClient as dbCreateClient, updateClient as dbUpdateClient, deleteClient as dbDeleteClient, Client } from './db';
+import { getSession } from './auth';
 
 export const OAuthClientSchema = z.object({
-    id: z.string(),
+    id: z.string().optional(),
     name: z.string(),
     clientId: z.string(),
     clientSecret: z.string(),
@@ -15,38 +13,73 @@ export const OAuthClientSchema = z.object({
     redirectUri: z.string().url(),
 });
 
-export type OAuthClient = z.infer<typeof OAuthClientSchema>;
+export type OAuthClient = z.infer<typeof OAuthClientSchema> & { id: string };
 
-export async function getClients(): Promise<OAuthClient[]> {
-    try {
-        const data = await fs.readFile(CONFIG_FILE, 'utf-8');
-        return JSON.parse(data);
-    } catch (error) {
-        // If file doesn't exist, return empty array
-        return [];
-    }
+// Helper to map DB client to OAuthClient type
+function mapClient(client: Client): OAuthClient {
+    return {
+        id: client.id,
+        name: client.name,
+        clientId: client.client_id,
+        clientSecret: client.client_secret,
+        authorizeUrl: client.authorize_url,
+        tokenUrl: client.token_url,
+        scope: client.scope,
+        redirectUri: client.redirect_uri,
+    };
 }
 
-export async function saveClient(client: OAuthClient): Promise<void> {
-    const clients = await getClients();
-    const existingIndex = clients.findIndex((c) => c.id === client.id);
+export async function getClients(): Promise<OAuthClient[]> {
+    const session = await getSession();
+    if (!session) return [];
 
-    if (existingIndex >= 0) {
-        clients[existingIndex] = client;
+    const clients = getClientsByUserId(session.id);
+    return clients.map(mapClient);
+}
+
+export async function saveClient(clientData: OAuthClient): Promise<void> {
+    const session = await getSession();
+    if (!session) throw new Error('Unauthorized');
+
+    const existing = getClientById(clientData.id);
+
+    const dbClient = {
+        id: clientData.id,
+        user_id: session.id,
+        name: clientData.name,
+        client_id: clientData.clientId,
+        client_secret: clientData.clientSecret,
+        authorize_url: clientData.authorizeUrl,
+        token_url: clientData.tokenUrl,
+        scope: clientData.scope,
+        redirect_uri: clientData.redirectUri,
+    };
+
+    if (existing) {
+        // Ensure ownership
+        if (existing.user_id !== session.id) throw new Error('Unauthorized');
+        dbUpdateClient(dbClient as Client);
     } else {
-        clients.push(client);
+        dbCreateClient(dbClient);
     }
-
-    await fs.writeFile(CONFIG_FILE, JSON.stringify(clients, null, 2));
 }
 
 export async function deleteClient(id: string): Promise<void> {
-    const clients = await getClients();
-    const newClients = clients.filter((c) => c.id !== id);
-    await fs.writeFile(CONFIG_FILE, JSON.stringify(newClients, null, 2));
+    const session = await getSession();
+    if (!session) throw new Error('Unauthorized');
+    dbDeleteClient(id, session.id);
 }
 
 export async function getClient(id: string): Promise<OAuthClient | undefined> {
-    const clients = await getClients();
-    return clients.find((c) => c.id === id);
+    // Note: This might need to verify ownership depending on context, 
+    // but for viewing/editing it usually does.
+    // For public execution (if any), we might need a separate method.
+    const client = getClientById(id);
+    if (!client) return undefined;
+
+    // Optional: Check ownership if strictly scoped to user
+    const session = await getSession();
+    if (session && client.user_id !== session.id) return undefined;
+
+    return mapClient(client);
 }

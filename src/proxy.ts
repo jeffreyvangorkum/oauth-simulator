@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function proxy(request: NextRequest) {
-    const authCookie = request.cookies.get('oauth_sim_auth');
-    const isAuthenticated = authCookie?.value === 'true';
+    const authCookie = request.cookies.get('oauth_sim_session');
+    const isAuthenticated = !!authCookie;
     const isLoginPage = request.nextUrl.pathname === '/login';
+    const isRegisterPage = request.nextUrl.pathname === '/register';
     const isApiRoute = request.nextUrl.pathname.startsWith('/api');
 
     // Allow API routes (except maybe some administrative ones, but callback needs to be public)
@@ -14,11 +15,11 @@ export function proxy(request: NextRequest) {
         return NextResponse.next();
     }
 
-    if (!isAuthenticated && !isLoginPage) {
+    if (!isAuthenticated && !isLoginPage && !isRegisterPage) {
         return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    if (isAuthenticated && isLoginPage) {
+    if (isAuthenticated && (isLoginPage || isRegisterPage)) {
         return NextResponse.redirect(new URL('/', request.url));
     }
 

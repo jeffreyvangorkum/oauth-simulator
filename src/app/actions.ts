@@ -1,23 +1,75 @@
 'use server';
 
-import { login, logout } from '@/lib/auth';
+import { login, logout, register, loginWithMfa } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { saveClient, deleteClient, OAuthClient } from '@/lib/config';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function loginAction(prevState: any, formData: FormData) {
+    const username = formData.get('username') as string;
     const password = formData.get('password') as string;
-    const success = await login(password);
-    if (success) {
+    const token = formData.get('token') as string;
+
+    if (token) {
+        // MFA Verification Step
+        const result = await loginWithMfa(username, token);
+        if (result.success) {
+            redirect('/');
+        }
+        return { error: result.error || 'Invalid MFA code', mfaRequired: true, username };
+    }
+
+    const result = await login(username, password);
+    if (result.success) {
         redirect('/');
     }
-    return { error: 'Invalid password' };
+
+    if (result.mfaRequired) {
+        return { mfaRequired: true, username };
+    }
+
+    return { error: result.error || 'Invalid credentials' };
+}
+
+export async function registerAction(prevState: any, formData: FormData) {
+    const username = formData.get('username') as string;
+    const password = formData.get('password') as string;
+    const confirmPassword = formData.get('confirmPassword') as string;
+
+    if (password !== confirmPassword) {
+        return { error: 'Passwords do not match' };
+    }
+
+    const result = await register(username, password);
+    if (result.success) {
+        redirect('/');
+    }
+    return { error: result.error || 'Registration failed' };
 }
 
 export async function logoutAction() {
     await logout();
     redirect('/login');
+}
+
+// MFA Actions
+import { generateTotpSecret, verifyTotpAndEnable, getSession } from '@/lib/auth';
+
+export async function generateTotpSecretAction() {
+    const session = await getSession();
+    if (!session) throw new Error('Unauthorized');
+
+    const { secret, otpauth } = await generateTotpSecret(session.username);
+    return { secret, otpauth };
+}
+
+export async function verifyTotpAction(secret: string, token: string) {
+    const session = await getSession();
+    if (!session) throw new Error('Unauthorized');
+
+    const success = await verifyTotpAndEnable(session.id, secret, token);
+    return { success };
 }
 
 export async function saveClientAction(data: Omit<OAuthClient, 'id'> & { id?: string }) {

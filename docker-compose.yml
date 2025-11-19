@@ -9,4 +9,5 @@ services:
       - NODE_ENV=production
     volumes:
       - ./clients.json:/app/clients.json
+      - ./data:/app/data
     restart: unless-stopped
