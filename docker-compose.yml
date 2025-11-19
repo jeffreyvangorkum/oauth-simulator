@@ -5,8 +5,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - APP_PASSWORD=admin
+      - JWT_SECRET=your-secret-key-change-me
       - NODE_ENV=production
+      - APP_URL=http://localhost:3000
     volumes:
       - ./clients.json:/app/clients.json
       - ./data:/app/data

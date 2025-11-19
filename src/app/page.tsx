@@ -18,7 +18,7 @@ export default async function Dashboard() {
             </p>
           </div>
           <div className="flex gap-4">
-            <NewClientDialog />
+            <NewClientDialog defaultDomain={process.env.APP_URL} />
             <form action={logoutAction}>
               <Button variant="outline">Logout</Button>
             </form>

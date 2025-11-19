@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { saveClientAction } from '@/app/actions';
 import { Plus } from 'lucide-react';
 
-export function NewClientDialog() {
+export function NewClientDialog({ defaultDomain = 'http://localhost:3000' }: { defaultDomain?: string }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [oidcUrl, setOidcUrl] = useState('');
@@ -139,7 +139,7 @@ export function NewClientDialog() {
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="redirectUri" className="text-right">Redirect URI</Label>
-                            <Input id="redirectUri" name="redirectUri" defaultValue="http://localhost:3000/api/oauth/callback" className="col-span-3" required />
+                            <Input id="redirectUri" name="redirectUri" defaultValue={`${defaultDomain}/api/oauth/callback`} className="col-span-3" required />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="scope" className="text-right">Scope</Label>
