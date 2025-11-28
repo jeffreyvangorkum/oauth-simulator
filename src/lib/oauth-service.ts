@@ -94,6 +94,35 @@ export async function clientCredentialsFlow(client: OAuthClient): Promise<TokenR
     return response.json();
 }
 
+export async function refreshTokenFlow(client: OAuthClient, refreshToken: string): Promise<TokenResponse> {
+    const body = new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        client_id: client.clientId,
+        client_secret: client.clientSecret,
+    });
+
+    if (client.scope) {
+        body.append('scope', client.scope);
+    }
+
+    const response = await fetch(client.tokenUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Accept: 'application/json',
+        },
+        body,
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Refresh token flow failed: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    return response.json();
+}
+
 export function decodeToken(token: string): DecodedToken | null {
     try {
         const payload = decodeJwt(token);

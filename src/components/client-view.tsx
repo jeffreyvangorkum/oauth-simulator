@@ -6,7 +6,7 @@ import { generateAuthorizeUrl, TokenResponse } from '@/lib/oauth-service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TokenViewer } from '@/components/token-viewer';
-import { executeClientCredentialsFlow } from '@/app/actions';
+import { executeClientCredentialsFlow, executeRefreshTokenFlow } from '@/app/actions';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Play, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -25,6 +25,7 @@ export default function ClientView({ client }: { client: OAuthClient }) {
     const router = useRouter();
     const [tokens, setTokens] = useState<TokenResponse | null>(null);
     const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -65,6 +66,24 @@ export default function ClientView({ client }: { client: OAuthClient }) {
             setError(e.message || 'Flow failed');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleRefreshTokenFlow = async () => {
+        if (!tokens?.refresh_token) return;
+        setRefreshing(true);
+        setError(null);
+        try {
+            const result = await executeRefreshTokenFlow(client.id, tokens.refresh_token);
+            if (result.success) {
+                setTokens(result.tokens as TokenResponse);
+            } else {
+                setError(result.error as string);
+            }
+        } catch (e: any) {
+            setError(e.message || 'Refresh failed');
+        } finally {
+            setRefreshing(false);
         }
     };
 
@@ -120,13 +139,22 @@ export default function ClientView({ client }: { client: OAuthClient }) {
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <h2 className="text-xl font-semibold">Tokens</h2>
                         {tokens.access_token && (
-                            <TokenViewer token={tokens.access_token} label="Access Token" />
+                            <TokenViewer
+                                token={tokens.access_token}
+                                label="Access Token"
+                                grantType={tokens.grant_type}
+                            />
                         )}
                         {tokens.id_token && (
                             <TokenViewer token={tokens.id_token} label="ID Token" />
                         )}
                         {tokens.refresh_token && (
-                            <TokenViewer token={tokens.refresh_token} label="Refresh Token" />
+                            <TokenViewer
+                                token={tokens.refresh_token}
+                                label="Refresh Token"
+                                onRefresh={handleRefreshTokenFlow}
+                                isRefreshing={refreshing}
+                            />
                         )}
                         <div className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md overflow-auto">
                             <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">Full Response</h4>

@@ -37,7 +37,9 @@ export async function GET(request: NextRequest) {
 
         const redirectUrl = new URL(`/client/${clientId}`, baseUrl);
         redirectUrl.searchParams.set('success', 'true');
-        redirectUrl.searchParams.set('tokens', JSON.stringify(tokens));
+        // Inject grant_type for visualization
+        const tokensWithGrantType = { ...tokens, grant_type: 'authorization_code' };
+        redirectUrl.searchParams.set('tokens', JSON.stringify(tokensWithGrantType));
 
         return NextResponse.redirect(redirectUrl);
     } catch (e: any) {

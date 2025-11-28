@@ -4,10 +4,23 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { decodeToken, DecodedToken } from '@/lib/oauth-service';
-import { Check, Copy } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { RefreshCw, Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export function TokenViewer({ token, label }: { token: string; label: string }) {
+export function TokenViewer({
+    token,
+    label,
+    grantType,
+    onRefresh,
+    isRefreshing
+}: {
+    token: string;
+    label: string;
+    grantType?: string;
+    onRefresh?: () => void;
+    isRefreshing?: boolean;
+}) {
     const [decoded, setDecoded] = useState<DecodedToken | null>(null);
     const [copied, setCopied] = useState(false);
 
@@ -25,10 +38,24 @@ export function TokenViewer({ token, label }: { token: string; label: string }) 
         <Card className="mt-4">
             <CardHeader className="pb-2">
                 <div className="flex justify-between items-center">
-                    <CardTitle className="text-sm font-medium uppercase tracking-wider text-neutral-500">{label}</CardTitle>
-                    <Button variant="ghost" size="sm" onClick={copyToClipboard}>
-                        {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <CardTitle className="text-sm font-medium uppercase tracking-wider text-neutral-500">{label}</CardTitle>
+                        {grantType && (
+                            <Badge variant="outline" className="text-xs font-normal lowercase">
+                                {grantType}
+                            </Badge>
+                        )}
+                    </div>
+                    <div className="flex gap-2">
+                        {onRefresh && (
+                            <Button variant="ghost" size="sm" onClick={onRefresh} disabled={isRefreshing}>
+                                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={copyToClipboard}>
+                            {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                    </div>
                 </div>
             </CardHeader>
             <CardContent>

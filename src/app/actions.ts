@@ -119,6 +119,24 @@ export async function deleteClientAction(id: string) {
     revalidatePath('/');
 }
 
+export async function executeRefreshTokenFlow(clientId: string, refreshToken: string) {
+    try {
+        const { getClient } = await import('@/lib/config');
+        const { refreshTokenFlow } = await import('@/lib/oauth-service');
+
+        const client = await getClient(clientId);
+        if (!client) return { success: false, error: 'Client not found' };
+
+        const tokens = await refreshTokenFlow(client, refreshToken);
+        // Inject grant_type for visualization
+        const tokensWithGrantType = { ...tokens, grant_type: 'refresh_token' };
+        return { success: true, tokens: tokensWithGrantType };
+    } catch (e: any) {
+        console.error('Refresh Token Flow Error:', e);
+        return { success: false, error: e.message || 'An unexpected error occurred' };
+    }
+}
+
 export async function executeClientCredentialsFlow(clientId: string) {
     try {
         const { getClient } = await import('@/lib/config');
@@ -128,7 +146,9 @@ export async function executeClientCredentialsFlow(clientId: string) {
         if (!client) return { success: false, error: 'Client not found' };
 
         const tokens = await clientCredentialsFlow(client);
-        return { success: true, tokens };
+        // Inject grant_type for visualization
+        const tokensWithGrantType = { ...tokens, grant_type: 'client_credentials' };
+        return { success: true, tokens: tokensWithGrantType };
     } catch (e: any) {
         console.error('Client Credentials Flow Error:', e);
         return { success: false, error: e.message || 'An unexpected error occurred' };

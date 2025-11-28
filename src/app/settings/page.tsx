@@ -9,6 +9,9 @@ import { generateTotpSecretAction, verifyTotpAction, generateWebAuthnRegistratio
 import QRCode from 'qrcode';
 import { startRegistration } from '@simplewebauthn/browser';
 
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+
 export default function SettingsPage() {
     const [totpSecret, setTotpSecret] = useState<string | null>(null);
     const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
@@ -55,7 +58,14 @@ export default function SettingsPage() {
 
     return (
         <div className="container mx-auto py-10">
-            <h1 className="text-3xl font-bold mb-6">Settings</h1>
+            <div className="flex items-center gap-4 mb-6">
+                <Button variant="ghost" size="icon" asChild>
+                    <Link href="/">
+                        <ArrowLeft className="h-4 w-4" />
+                    </Link>
+                </Button>
+                <h1 className="text-3xl font-bold">Settings</h1>
+            </div>
 
             <Card className="max-w-md">
                 <CardHeader>
