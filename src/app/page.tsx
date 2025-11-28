@@ -1,6 +1,6 @@
 import { getClients } from '@/lib/config';
 import { ClientList } from '@/components/client-list';
-import { NewClientDialog } from '@/components/new-client-dialog';
+import { ClientDialog } from '@/components/client-dialog';
 import { logoutAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 
@@ -18,7 +18,7 @@ export default async function Dashboard() {
             </p>
           </div>
           <div className="flex gap-4">
-            <NewClientDialog defaultDomain={process.env.APP_URL} />
+            <ClientDialog defaultDomain={process.env.APP_URL} />
             <form action={logoutAction}>
               <Button variant="outline">Logout</Button>
             </form>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -14,18 +14,43 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { saveClientAction } from '@/app/actions';
-import { Plus } from 'lucide-react';
+import { Plus, Pencil } from 'lucide-react';
+import { OAuthClient } from '@/lib/config';
 
-export function NewClientDialog({ defaultDomain = 'http://localhost:3000' }: { defaultDomain?: string }) {
+interface ClientDialogProps {
+    client?: OAuthClient;
+    trigger?: React.ReactNode;
+    defaultDomain?: string;
+}
+
+export function ClientDialog({ client, trigger, defaultDomain = 'http://localhost:3000' }: ClientDialogProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [oidcUrl, setOidcUrl] = useState('');
     const [discovering, setDiscovering] = useState(false);
     const [discoveryError, setDiscoveryError] = useState<string | null>(null);
-    const [authUrl, setAuthUrl] = useState('');
-    const [tokenUrl, setTokenUrl] = useState('');
 
-    const [customAttributes, setCustomAttributes] = useState<{ key: string; value: string }[]>([]);
+    // Form state
+    const [authUrl, setAuthUrl] = useState(client?.authorizeUrl || '');
+    const [tokenUrl, setTokenUrl] = useState(client?.tokenUrl || '');
+    const [customAttributes, setCustomAttributes] = useState<{ key: string; value: string }[]>(
+        client?.customAttributes
+            ? Object.entries(client.customAttributes).map(([key, value]) => ({ key, value }))
+            : []
+    );
+
+    // Reset state when client prop changes or dialog opens
+    useEffect(() => {
+        if (open) {
+            setAuthUrl(client?.authorizeUrl || '');
+            setTokenUrl(client?.tokenUrl || '');
+            setCustomAttributes(
+                client?.customAttributes
+                    ? Object.entries(client.customAttributes).map(([key, value]) => ({ key, value }))
+                    : []
+            );
+        }
+    }, [open, client]);
 
     async function handleDiscover() {
         if (!oidcUrl) return;
@@ -68,6 +93,7 @@ export function NewClientDialog({ defaultDomain = 'http://localhost:3000' }: { d
         });
 
         const data = {
+            id: client?.id, // Include ID if editing
             name: formData.get('name') as string,
             clientId: formData.get('clientId') as string,
             clientSecret: formData.get('clientSecret') as string,
@@ -81,63 +107,75 @@ export function NewClientDialog({ defaultDomain = 'http://localhost:3000' }: { d
         await saveClientAction(data);
         setLoading(false);
         setOpen(false);
-        setCustomAttributes([]); // Reset attributes
+        if (!client) {
+            setCustomAttributes([]); // Reset attributes only if creating new
+            setAuthUrl('');
+            setTokenUrl('');
+        }
     }
+
+    const isEditing = !!client;
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" /> New Client
-                </Button>
+                {trigger || (
+                    <Button>
+                        <Plus className="mr-2 h-4 w-4" /> New Client
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Add OAuth Client</DialogTitle>
+                    <DialogTitle>{isEditing ? 'Edit OAuth Client' : 'Add OAuth Client'}</DialogTitle>
                     <DialogDescription>
-                        Configure a new OAuth 2.0 client to simulate flows.
+                        {isEditing
+                            ? 'Update the configuration for this OAuth 2.0 client.'
+                            : 'Configure a new OAuth 2.0 client to simulate flows.'}
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md mb-4">
-                    <Label htmlFor="oidcUrl" className="text-xs font-semibold uppercase text-neutral-500 mb-2 block">
-                        Auto-configure from OIDC
-                    </Label>
-                    <div className="flex gap-2">
-                        <Input
-                            id="oidcUrl"
-                            placeholder="e.g. https://accounts.google.com"
-                            value={oidcUrl}
-                            onChange={(e) => setOidcUrl(e.target.value)}
-                            className="flex-1"
-                        />
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={handleDiscover}
-                            disabled={discovering || !oidcUrl}
-                        >
-                            {discovering ? '...' : 'Fetch'}
-                        </Button>
+                {!isEditing && (
+                    <div className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md mb-4">
+                        <Label htmlFor="oidcUrl" className="text-xs font-semibold uppercase text-neutral-500 mb-2 block">
+                            Auto-configure from OIDC
+                        </Label>
+                        <div className="flex gap-2">
+                            <Input
+                                id="oidcUrl"
+                                placeholder="e.g. https://accounts.google.com"
+                                value={oidcUrl}
+                                onChange={(e) => setOidcUrl(e.target.value)}
+                                className="flex-1"
+                            />
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={handleDiscover}
+                                disabled={discovering || !oidcUrl}
+                            >
+                                {discovering ? '...' : 'Fetch'}
+                            </Button>
+                        </div>
+                        {discoveryError && (
+                            <p className="text-xs text-red-500 mt-2">{discoveryError}</p>
+                        )}
                     </div>
-                    {discoveryError && (
-                        <p className="text-xs text-red-500 mt-2">{discoveryError}</p>
-                    )}
-                </div>
+                )}
 
                 <form action={handleSubmit}>
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="name" className="text-right">Name</Label>
-                            <Input id="name" name="name" placeholder="My App" className="col-span-3" required />
+                            <Input id="name" name="name" placeholder="My App" className="col-span-3" required defaultValue={client?.name} />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="clientId" className="text-right">Client ID</Label>
-                            <Input id="clientId" name="clientId" className="col-span-3" required />
+                            <Input id="clientId" name="clientId" className="col-span-3" required defaultValue={client?.clientId} />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="clientSecret" className="text-right">Secret</Label>
-                            <Input id="clientSecret" name="clientSecret" type="password" className="col-span-3" required />
+                            <Input id="clientSecret" name="clientSecret" type="password" className="col-span-3" required defaultValue={client?.clientSecret} />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="authorizeUrl" className="text-right">Auth URL</Label>
@@ -165,11 +203,11 @@ export function NewClientDialog({ defaultDomain = 'http://localhost:3000' }: { d
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="redirectUri" className="text-right">Redirect URI</Label>
-                            <Input id="redirectUri" name="redirectUri" defaultValue={`${defaultDomain}/api/oauth/callback`} className="col-span-3" required />
+                            <Input id="redirectUri" name="redirectUri" defaultValue={client?.redirectUri || `${defaultDomain}/api/oauth/callback`} className="col-span-3" required />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="scope" className="text-right">Scope</Label>
-                            <Input id="scope" name="scope" placeholder="openid profile" className="col-span-3" />
+                            <Input id="scope" name="scope" placeholder="openid profile" className="col-span-3" defaultValue={client?.scope} />
                         </div>
 
                         <div className="border-t pt-4 mt-2">
@@ -215,7 +253,7 @@ export function NewClientDialog({ defaultDomain = 'http://localhost:3000' }: { d
                     </div>
                     <DialogFooter>
                         <Button type="submit" disabled={loading}>
-                            {loading ? 'Saving...' : 'Save Client'}
+                            {loading ? 'Saving...' : (isEditing ? 'Save Changes' : 'Save Client')}
                         </Button>
                     </DialogFooter>
                 </form>

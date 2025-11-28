@@ -31,7 +31,8 @@ The OAuth Simulator is a modern web application designed to help you understand 
 ### 1. Dashboard
 - View all configured OAuth clients.
 - Add new clients with custom endpoints and credentials.
-- Configuration is persisted to `clients.json`.
+- **Edit existing clients**: Update configuration for any client directly from the dashboard.
+- Configuration is persisted to `clients.json` (or SQLite database).
 
 ### 2. Authorization Code Flow
 - Simulate the user-interactive flow.
@@ -50,4 +51,4 @@ The OAuth Simulator is a modern web application designed to help you understand 
 
 ## Configuration
 - **App Password**: Set via `APP_PASSWORD` environment variable (default: `admin`).
-- **Persistence**: Client data is stored in `clients.json` (mapped as a volume in Docker).
+- **Persistence**: Client data is stored in `data/database.sqlite` (mapped as a volume in Docker).

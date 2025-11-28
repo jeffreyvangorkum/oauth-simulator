@@ -5,8 +5,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Trash2, ExternalLink } from 'lucide-react';
+import { Trash2, ExternalLink, Pencil } from 'lucide-react';
 import { deleteClientAction } from '@/app/actions';
+import { ClientDialog } from '@/components/client-dialog';
 
 export function ClientList({ clients }: { clients: OAuthClient[] }) {
     if (clients.length === 0) {
@@ -42,6 +43,14 @@ export function ClientList({ clients }: { clients: OAuthClient[] }) {
                         </div>
                     </CardContent>
                     <CardFooter className="flex justify-between gap-2">
+                        <ClientDialog
+                            client={client}
+                            trigger={
+                                <Button variant="outline" size="icon">
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
+                            }
+                        />
                         <Button variant="destructive" size="icon" onClick={() => deleteClientAction(client.id)}>
                             <Trash2 className="h-4 w-4" />
                         </Button>
