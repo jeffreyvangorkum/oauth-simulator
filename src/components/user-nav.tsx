@@ -34,6 +34,14 @@ export function UserNav({ user }: UserNavProps) {
                     </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {user.username === 'admin' && (
+                    <>
+                        <DropdownMenuItem asChild>
+                            <Link href="/admin">Admin Dashboard</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                    </>
+                )}
                 <DropdownMenuItem asChild>
                     <Link href="/settings">Settings</Link>
                 </DropdownMenuItem>

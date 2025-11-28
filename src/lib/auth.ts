@@ -30,6 +30,10 @@ export async function login(username: string, password: string): Promise<{ succe
         return { success: false, error: 'Invalid credentials' };
     }
 
+    if (user.disabled) {
+        return { success: false, error: 'Account is disabled' };
+    }
+
     const isValid = await bcrypt.compare(password, user.password_hash);
     if (!isValid) {
         return { success: false, error: 'Invalid credentials' };

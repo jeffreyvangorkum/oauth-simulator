@@ -187,3 +187,71 @@ export async function discoverOidcAction(url: string) {
         throw new Error(error.message || 'Failed to discover OIDC configuration');
     }
 }
+
+// Admin Actions
+import { getAllUsers, deleteUser, updateUserPassword, updateUserStatus } from '@/lib/db';
+import bcrypt from 'bcryptjs';
+
+async function requireAdmin() {
+    const session = await getSession();
+    if (!session || session.username !== 'admin') {
+        throw new Error('Unauthorized');
+    }
+    return session;
+}
+
+export async function adminGetUsersAction() {
+    try {
+        await requireAdmin();
+        const users = getAllUsers();
+        // Don't return sensitive data like password_hash or secrets
+        return users.map(u => ({
+            id: u.id,
+            username: u.username,
+            created_at: u.created_at,
+            clientCount: u.clientCount,
+            disabled: u.disabled
+        }));
+    } catch (e) {
+        return [];
+    }
+}
+
+export async function adminDeleteUserAction(userId: string) {
+    try {
+        const session = await requireAdmin();
+        if (userId === session.id) {
+            return { success: false, error: 'Cannot delete yourself' };
+        }
+        deleteUser(userId);
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function adminResetPasswordAction(userId: string, newPassword: string) {
+    try {
+        await requireAdmin();
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        updateUserPassword(userId, hashedPassword);
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function adminToggleStatusAction(userId: string, disabled: boolean) {
+    try {
+        const session = await requireAdmin();
+        if (userId === session.id) {
+            return { success: false, error: 'Cannot disable yourself' };
+        }
+        updateUserStatus(userId, disabled);
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}

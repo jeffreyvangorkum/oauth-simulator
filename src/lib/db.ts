@@ -19,6 +19,8 @@ db.exec(`
         password_hash TEXT NOT NULL,
         totp_secret TEXT,
         webauthn_credentials TEXT,
+        current_challenge TEXT,
+        disabled INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -34,7 +36,7 @@ db.exec(`
         redirect_uri TEXT NOT NULL,
         custom_attributes TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS authenticators (
@@ -45,17 +47,24 @@ db.exec(`
         credentialBackedUp INTEGER NOT NULL,
         transports TEXT,
         user_id TEXT NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES users(id)
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
 `);
 
 // Migrations
 try {
-    const columns = db.prepare('PRAGMA table_info(clients)').all() as any[];
-    const hasCustomAttributes = columns.some(col => col.name === 'custom_attributes');
+    const clientColumns = db.prepare('PRAGMA table_info(clients)').all() as any[];
+    const hasCustomAttributes = clientColumns.some(col => col.name === 'custom_attributes');
     if (!hasCustomAttributes) {
         db.exec('ALTER TABLE clients ADD COLUMN custom_attributes TEXT');
         console.log('Migrated clients table: added custom_attributes column');
+    }
+
+    const userColumns = db.prepare('PRAGMA table_info(users)').all() as any[];
+    const hasDisabled = userColumns.some(col => col.name === 'disabled');
+    if (!hasDisabled) {
+        db.exec('ALTER TABLE users ADD COLUMN disabled INTEGER DEFAULT 0');
+        console.log('Migrated users table: added disabled column');
     }
 } catch (error) {
     console.error('Migration failed:', error);
@@ -67,6 +76,7 @@ export interface User {
     password_hash: string;
     totp_secret?: string;
     current_challenge?: string;
+    disabled: boolean;
     created_at: string;
 }
 
@@ -142,17 +152,52 @@ export function migrateLegacyClients() {
 // User functions
 export function createUser(username: string, passwordHash: string): User {
     const id = uuidv4();
-    const stmt = db.prepare('INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)');
+    const stmt = db.prepare('INSERT INTO users (id, username, password_hash, disabled) VALUES (?, ?, ?, 0)');
     stmt.run(id, username, passwordHash);
     return getUser(id)!;
 }
 
 export function getUser(id: string): User | undefined {
-    return db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User | undefined;
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as any;
+    if (!user) return undefined;
+    return { ...user, disabled: !!user.disabled };
 }
 
 export function getUserByUsername(username: string): User | undefined {
-    return db.prepare('SELECT * FROM users WHERE username = ?').get(username) as User | undefined;
+    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as any;
+    if (!user) return undefined;
+    return { ...user, disabled: !!user.disabled };
+}
+
+export function getAllUsers(): (User & { clientCount: number })[] {
+    const users = db.prepare(`
+        SELECT u.*, COUNT(c.id) as clientCount 
+        FROM users u 
+        LEFT JOIN clients c ON u.id = c.user_id 
+        GROUP BY u.id
+    `).all() as any[];
+
+    return users.map(u => ({
+        ...u,
+        disabled: !!u.disabled,
+        clientCount: u.clientCount || 0
+    }));
+}
+
+export function deleteUser(id: string) {
+    // Due to ON DELETE CASCADE, clients and authenticators should be deleted automatically
+    // But better-sqlite3 might not have foreign key constraints enabled by default in all environments
+    // So let's enable them or do manual deletion just in case to be safe
+    db.pragma('foreign_keys = ON');
+    db.prepare('DELETE FROM users WHERE id = ?').run(id);
+}
+
+export function updateUserPassword(id: string, passwordHash: string) {
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, id);
+}
+
+export function updateUserStatus(id: string, disabled: boolean) {
+    db.prepare('UPDATE users SET disabled = ? WHERE id = ?').run(disabled ? 1 : 0, id);
 }
 
 export function updateUserTotpSecret(userId: string, secret: string | null) {
