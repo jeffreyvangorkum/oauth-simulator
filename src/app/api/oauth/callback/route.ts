@@ -30,13 +30,19 @@ export async function GET(request: NextRequest) {
 
         // Redirect back to the client page with tokens in query params
         // Note: In a real app, you wouldn't pass tokens in URL. This is a simulator for visualization.
-        const redirectUrl = new URL(`/client/${clientId}`, request.url);
+        const baseUrl = process.env.APP_URL || request.url;
+        // If APP_URL is just the origin (e.g. https://example.com), we need to ensure we construct the full path correctly.
+        // new URL('/path', 'https://example.com') works.
+        // new URL('/path', 'https://example.com/foo') works (resolves to https://example.com/path).
+
+        const redirectUrl = new URL(`/client/${clientId}`, baseUrl);
         redirectUrl.searchParams.set('success', 'true');
         redirectUrl.searchParams.set('tokens', JSON.stringify(tokens));
 
         return NextResponse.redirect(redirectUrl);
     } catch (e: any) {
-        const redirectUrl = new URL(`/client/${clientId}`, request.url);
+        const baseUrl = process.env.APP_URL || request.url;
+        const redirectUrl = new URL(`/client/${clientId}`, baseUrl);
         redirectUrl.searchParams.set('error', e.message || 'Token exchange failed');
         return NextResponse.redirect(redirectUrl);
     }
