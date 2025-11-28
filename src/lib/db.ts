@@ -35,6 +35,18 @@ db.exec(`
         scope TEXT,
         redirect_uri TEXT NOT NULL,
         custom_attributes TEXT,
+        end_session_endpoint TEXT,
+        logout_config_id TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (logout_config_id) REFERENCES logout_configs(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS logout_configs (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        config TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
@@ -58,6 +70,13 @@ try {
     if (!hasCustomAttributes) {
         db.exec('ALTER TABLE clients ADD COLUMN custom_attributes TEXT');
         console.log('Migrated clients table: added custom_attributes column');
+    }
+
+    const hasEndSessionEndpoint = clientColumns.some(col => col.name === 'end_session_endpoint');
+    if (!hasEndSessionEndpoint) {
+        db.exec('ALTER TABLE clients ADD COLUMN end_session_endpoint TEXT');
+        db.exec('ALTER TABLE clients ADD COLUMN logout_config_id TEXT');
+        console.log('Migrated clients table: added end_session_endpoint and logout_config_id columns');
     }
 
     const userColumns = db.prepare('PRAGMA table_info(users)').all() as any[];
@@ -101,6 +120,16 @@ export interface Client {
     scope?: string;
     redirect_uri: string;
     custom_attributes?: string;
+    end_session_endpoint?: string;
+    logout_config_id?: string;
+    created_at: string;
+}
+
+export interface LogoutConfig {
+    id: string;
+    user_id: string;
+    name: string;
+    config: string; // JSON string of Record<string, string>
     created_at: string;
 }
 
@@ -257,8 +286,8 @@ export function getClientById(id: string): Client | undefined {
 
 export function createClient(client: Omit<Client, 'created_at'>) {
     const stmt = db.prepare(`
-        INSERT INTO clients (id, user_id, name, client_id, client_secret, authorize_url, token_url, scope, redirect_uri, custom_attributes)
-        VALUES (@id, @user_id, @name, @client_id, @client_secret, @authorize_url, @token_url, @scope, @redirect_uri, @custom_attributes)
+        INSERT INTO clients (id, user_id, name, client_id, client_secret, authorize_url, token_url, scope, redirect_uri, custom_attributes, end_session_endpoint, logout_config_id)
+        VALUES (@id, @user_id, @name, @client_id, @client_secret, @authorize_url, @token_url, @scope, @redirect_uri, @custom_attributes, @end_session_endpoint, @logout_config_id)
     `);
     stmt.run(client);
 }
@@ -273,7 +302,9 @@ export function updateClient(client: Client) {
             token_url = @token_url, 
             scope = @scope, 
             redirect_uri = @redirect_uri,
-            custom_attributes = @custom_attributes
+            custom_attributes = @custom_attributes,
+            end_session_endpoint = @end_session_endpoint,
+            logout_config_id = @logout_config_id
         WHERE id = @id AND user_id = @user_id
     `);
     stmt.run(client);
@@ -281,6 +312,37 @@ export function updateClient(client: Client) {
 
 export function deleteClient(id: string, userId: string) {
     db.prepare('DELETE FROM clients WHERE id = ? AND user_id = ?').run(id, userId);
+}
+
+// Logout Config functions
+export function getLogoutConfigsByUserId(userId: string): LogoutConfig[] {
+    return db.prepare('SELECT * FROM logout_configs WHERE user_id = ?').all(userId) as LogoutConfig[];
+}
+
+export function getLogoutConfigById(id: string): LogoutConfig | undefined {
+    return db.prepare('SELECT * FROM logout_configs WHERE id = ?').get(id) as LogoutConfig | undefined;
+}
+
+export function createLogoutConfig(config: Omit<LogoutConfig, 'created_at'>) {
+    const stmt = db.prepare(`
+        INSERT INTO logout_configs (id, user_id, name, config)
+        VALUES (@id, @user_id, @name, @config)
+    `);
+    stmt.run(config);
+}
+
+export function updateLogoutConfig(config: LogoutConfig) {
+    const stmt = db.prepare(`
+        UPDATE logout_configs SET 
+            name = @name, 
+            config = @config
+        WHERE id = @id AND user_id = @user_id
+    `);
+    stmt.run(config);
+}
+
+export function deleteLogoutConfig(id: string, userId: string) {
+    db.prepare('DELETE FROM logout_configs WHERE id = ? AND user_id = ?').run(id, userId);
 }
 
 // Run migration on module load (safe because of checks)

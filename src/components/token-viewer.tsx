@@ -13,20 +13,24 @@ export function TokenViewer({
     label,
     grantType,
     onRefresh,
-    isRefreshing
+    isRefreshing,
+    hideDecoded = false
 }: {
     token: string;
     label: string;
     grantType?: string;
     onRefresh?: () => void;
     isRefreshing?: boolean;
+    hideDecoded?: boolean;
 }) {
     const [decoded, setDecoded] = useState<DecodedToken | null>(null);
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
-        setDecoded(decodeToken(token));
-    }, [token]);
+        if (!hideDecoded) {
+            setDecoded(decodeToken(token));
+        }
+    }, [token, hideDecoded]);
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(token);
@@ -59,39 +63,45 @@ export function TokenViewer({
                 </div>
             </CardHeader>
             <CardContent>
-                <Tabs defaultValue="decoded" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="decoded">Decoded</TabsTrigger>
-                        <TabsTrigger value="raw">Raw</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="decoded" className="mt-4 space-y-4">
-                        {decoded ? (
-                            <>
-                                <div className="space-y-2">
-                                    <h4 className="text-xs font-semibold text-neutral-500 uppercase">Header</h4>
-                                    <pre className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md text-xs overflow-auto max-h-40">
-                                        {JSON.stringify(decoded.header, null, 2)}
-                                    </pre>
+                {hideDecoded ? (
+                    <pre className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md text-xs break-all whitespace-pre-wrap">
+                        {token}
+                    </pre>
+                ) : (
+                    <Tabs defaultValue="decoded" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="decoded">Decoded</TabsTrigger>
+                            <TabsTrigger value="raw">Raw</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="decoded" className="mt-4 space-y-4">
+                            {decoded ? (
+                                <>
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-semibold text-neutral-500 uppercase">Header</h4>
+                                        <pre className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md text-xs overflow-auto max-h-40">
+                                            {JSON.stringify(decoded.header, null, 2)}
+                                        </pre>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-semibold text-neutral-500 uppercase">Payload</h4>
+                                        <pre className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md text-xs overflow-auto max-h-96">
+                                            {JSON.stringify(decoded.payload, null, 2)}
+                                        </pre>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-center py-8 text-neutral-500">
+                                    Not a valid JWT or opaque token
                                 </div>
-                                <div className="space-y-2">
-                                    <h4 className="text-xs font-semibold text-neutral-500 uppercase">Payload</h4>
-                                    <pre className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md text-xs overflow-auto max-h-96">
-                                        {JSON.stringify(decoded.payload, null, 2)}
-                                    </pre>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="text-center py-8 text-neutral-500">
-                                Not a valid JWT or opaque token
-                            </div>
-                        )}
-                    </TabsContent>
-                    <TabsContent value="raw">
-                        <pre className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md text-xs break-all whitespace-pre-wrap">
-                            {token}
-                        </pre>
-                    </TabsContent>
-                </Tabs>
+                            )}
+                        </TabsContent>
+                        <TabsContent value="raw">
+                            <pre className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md text-xs break-all whitespace-pre-wrap">
+                                {token}
+                            </pre>
+                        </TabsContent>
+                    </Tabs>
+                )}
             </CardContent>
         </Card>
     );

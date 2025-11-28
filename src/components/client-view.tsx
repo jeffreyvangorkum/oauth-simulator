@@ -154,6 +154,7 @@ export default function ClientView({ client }: { client: OAuthClient }) {
                                 label="Refresh Token"
                                 onRefresh={handleRefreshTokenFlow}
                                 isRefreshing={refreshing}
+                                hideDecoded={true}
                             />
                         )}
                         <div className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md overflow-auto">
