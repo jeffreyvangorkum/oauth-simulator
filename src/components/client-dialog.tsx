@@ -33,6 +33,9 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
     // Form state
     const [authUrl, setAuthUrl] = useState(client?.authorizeUrl || '');
     const [tokenUrl, setTokenUrl] = useState(client?.tokenUrl || '');
+    const [redirectUri, setRedirectUri] = useState(
+        client?.redirectUri || `${defaultDomain}/api/oauth/callback`
+    );
     const [customAttributes, setCustomAttributes] = useState<{ key: string; value: string }[]>(
         client?.customAttributes
             ? Object.entries(client.customAttributes).map(([key, value]) => ({ key, value }))
@@ -44,13 +47,22 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
         if (open) {
             setAuthUrl(client?.authorizeUrl || '');
             setTokenUrl(client?.tokenUrl || '');
+            // If editing, use client's URI. If new, try to use window.location.origin, fallback to defaultDomain
+            if (client) {
+                setRedirectUri(client.redirectUri);
+            } else if (typeof window !== 'undefined') {
+                setRedirectUri(`${window.location.origin}/api/oauth/callback`);
+            } else {
+                setRedirectUri(`${defaultDomain}/api/oauth/callback`);
+            }
+
             setCustomAttributes(
                 client?.customAttributes
                     ? Object.entries(client.customAttributes).map(([key, value]) => ({ key, value }))
                     : []
             );
         }
-    }, [open, client]);
+    }, [open, client, defaultDomain]);
 
     async function handleDiscover() {
         if (!oidcUrl) return;
@@ -111,6 +123,10 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
             setCustomAttributes([]); // Reset attributes only if creating new
             setAuthUrl('');
             setTokenUrl('');
+            // Reset redirect URI to current origin
+            if (typeof window !== 'undefined') {
+                setRedirectUri(`${window.location.origin}/api/oauth/callback`);
+            }
         }
     }
 
@@ -203,7 +219,14 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="redirectUri" className="text-right">Redirect URI</Label>
-                            <Input id="redirectUri" name="redirectUri" defaultValue={client?.redirectUri || `${defaultDomain}/api/oauth/callback`} className="col-span-3" required />
+                            <Input
+                                id="redirectUri"
+                                name="redirectUri"
+                                className="col-span-3"
+                                required
+                                value={redirectUri}
+                                onChange={(e) => setRedirectUri(e.target.value)}
+                            />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="scope" className="text-right">Scope</Label>
