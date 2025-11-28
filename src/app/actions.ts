@@ -180,58 +180,12 @@ export async function discoverOidcAction(url: string) {
         return {
             authorization_endpoint: config.authorization_endpoint,
             token_endpoint: config.token_endpoint,
-            issuer: config.issuer,
-            end_session_endpoint: config.end_session_endpoint,
+            issuer: config.issuer, // Optional but good to have
         };
     } catch (error: any) {
         console.error('OIDC Discovery failed:', error);
         throw new Error(error.message || 'Failed to discover OIDC configuration');
     }
-}
-
-// Logout Config Actions
-import {
-    getLogoutConfigsByUserId,
-    createLogoutConfig,
-    updateLogoutConfig,
-    deleteLogoutConfig,
-    LogoutConfig
-} from '@/lib/db';
-
-export async function getLogoutConfigsAction() {
-    const session = await getSession();
-    if (!session) throw new Error('Unauthorized');
-    const configs = getLogoutConfigsByUserId(session.id);
-    return configs.map(c => ({
-        ...c,
-        config: JSON.parse(c.config) as Record<string, string>
-    }));
-}
-
-export async function saveLogoutConfigAction(data: { id?: string; name: string; config: Record<string, string> }) {
-    const session = await getSession();
-    if (!session) throw new Error('Unauthorized');
-
-    const configData = {
-        id: data.id || uuidv4(),
-        user_id: session.id,
-        name: data.name,
-        config: JSON.stringify(data.config)
-    };
-
-    if (data.id) {
-        updateLogoutConfig(configData as LogoutConfig);
-    } else {
-        createLogoutConfig(configData);
-    }
-    revalidatePath('/settings');
-}
-
-export async function deleteLogoutConfigAction(id: string) {
-    const session = await getSession();
-    if (!session) throw new Error('Unauthorized');
-    deleteLogoutConfig(id, session.id);
-    revalidatePath('/settings');
 }
 
 // Admin Actions
