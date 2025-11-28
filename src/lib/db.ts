@@ -49,6 +49,18 @@ db.exec(`
     );
 `);
 
+// Migrations
+try {
+    const columns = db.prepare('PRAGMA table_info(clients)').all() as any[];
+    const hasCustomAttributes = columns.some(col => col.name === 'custom_attributes');
+    if (!hasCustomAttributes) {
+        db.exec('ALTER TABLE clients ADD COLUMN custom_attributes TEXT');
+        console.log('Migrated clients table: added custom_attributes column');
+    }
+} catch (error) {
+    console.error('Migration failed:', error);
+}
+
 export interface User {
     id: string;
     username: string;
@@ -191,13 +203,7 @@ export function updateAuthenticatorCounter(credentialID: string, counter: number
 
 // Client functions
 export function getClientsByUserId(userId: string): Client[] {
-    // Ensure custom_attributes column exists
-    try {
-        return db.prepare('SELECT * FROM clients WHERE user_id = ?').all(userId) as Client[];
-    } catch (e) {
-        db.exec('ALTER TABLE clients ADD COLUMN custom_attributes TEXT');
-        return db.prepare('SELECT * FROM clients WHERE user_id = ?').all(userId) as Client[];
-    }
+    return db.prepare('SELECT * FROM clients WHERE user_id = ?').all(userId) as Client[];
 }
 
 export function getClientById(id: string): Client | undefined {
