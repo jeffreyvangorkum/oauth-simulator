@@ -42,15 +42,13 @@ A powerful, modern web application designed to help developers test, debug, and 
 
 The application uses the following environment variables (defined in `docker-compose.yml`):
 
-- `JWT_SECRET`: Secret key for signing session tokens (change this in production).
-- `APP_URL`: The base URL of the application (default: `http://localhost:3000`). Used for autofilling Redirect URIs.
+- `JWT_SECRET`: Secret key for signing session tokens. **Important**: Change this to a secure random value in production.
+- `APP_URL`: The base URL of the application (default: `http://localhost:3000`). Used for autofilling Redirect URIs and Post Logout Redirect URIs.
+- `ENABLE_REGISTRATION`: Set to `true` to allow new user registration, or `false` to disable it (default: `true`).
+- `RP_ID`: Relying Party ID for WebAuthn (Passkey) authentication. Should match your domain (default: `localhost`).
+- `RP_NAME`: Display name for WebAuthn authentication (default: `OAuth Simulator`).
+- `RP_ORIGIN`: Origin URL for WebAuthn authentication. Must match the URL users access the app from (default: `http://localhost:3000`).
 - `NODE_ENV`: Node environment (default: `production`).
-
-### Migrating Legacy Clients
-
-If you have an existing `clients.json` file, you can mount it to `/app/clients.json` in `docker-compose.yml` for a one-time migration.
-The application will import these clients into the database and create a default `admin` user (password: `admin`) if no users exist.
-After migration, the file is renamed to `clients.json.bak` and is no longer used.
 
 ---
 
