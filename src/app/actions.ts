@@ -256,3 +256,60 @@ export async function adminToggleStatusAction(userId: string, disabled: boolean)
         return { success: false, error: e.message };
     }
 }
+
+export async function adminGetClientsForUserAction(userId: string) {
+    try {
+        await requireAdmin();
+        const { getClientsByUserId } = await import('@/lib/db');
+        const clients = getClientsByUserId(userId);
+        return clients.map(c => ({
+            id: c.id,
+            name: c.name,
+            clientId: c.client_id,
+            redirectUri: c.redirect_uri,
+            created_at: c.created_at
+        }));
+    } catch (e: any) {
+        console.error('Failed to get clients:', e);
+        return [];
+    }
+}
+
+export async function adminDeleteClientAction(clientId: string) {
+    try {
+        await requireAdmin();
+        const { adminDeleteClient } = await import('@/lib/db');
+        adminDeleteClient(clientId);
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function adminCopyClientAction(clientId: string, targetUserId: string) {
+    try {
+        await requireAdmin();
+        const { getClientById, createClient } = await import('@/lib/db');
+
+        const sourceClient = getClientById(clientId);
+        if (!sourceClient) throw new Error('Client not found');
+
+        const newClient = {
+            ...sourceClient,
+            id: uuidv4(),
+            user_id: targetUserId,
+            name: `${sourceClient.name} (Copy)`,
+            // Keep other fields same
+        };
+
+        // Remove created_at to let DB set it
+        const { created_at, ...clientData } = newClient;
+
+        createClient(clientData);
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}

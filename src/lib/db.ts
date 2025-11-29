@@ -301,6 +301,10 @@ export function deleteClient(id: string, userId: string) {
     db.prepare('DELETE FROM clients WHERE id = ? AND user_id = ?').run(id, userId);
 }
 
+export function adminDeleteClient(id: string) {
+    db.prepare('DELETE FROM clients WHERE id = ?').run(id);
+}
+
 // Run migration on module load (safe because of checks)
 migrateLegacyClients();
 

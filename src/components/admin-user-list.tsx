@@ -29,8 +29,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MoreHorizontal, Shield, ShieldAlert, Trash, Key } from 'lucide-react';
-import { adminDeleteUserAction, adminResetPasswordAction, adminToggleStatusAction } from '@/app/actions';
+import { adminDeleteUserAction, adminResetPasswordAction, adminToggleStatusAction, adminGetClientsForUserAction, adminDeleteClientAction, adminCopyClientAction } from '@/app/actions';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface User {
     id: string;
@@ -40,11 +41,27 @@ interface User {
     disabled: boolean;
 }
 
+interface ClientSummary {
+    id: string;
+    name: string;
+    clientId: string;
+    redirectUri: string;
+    created_at: string;
+}
+
 export function AdminUserList({ users }: { users: User[] }) {
     const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [newPassword, setNewPassword] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Client Management State
+    const [clientDialogOpen, setClientDialogOpen] = useState(false);
+    const [userClients, setUserClients] = useState<ClientSummary[]>([]);
+    const [viewingUser, setViewingUser] = useState<User | null>(null);
+    const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+    const [selectedClient, setSelectedClient] = useState<ClientSummary | null>(null);
+    const [targetUserId, setTargetUserId] = useState('');
 
     const handleDelete = async (userId: string) => {
         if (confirm('Are you sure you want to delete this user? This action cannot be undone and will delete all their clients.')) {
@@ -71,6 +88,41 @@ export function AdminUserList({ users }: { users: User[] }) {
         alert('Password reset successfully');
     };
 
+    const handleViewClients = async (user: User) => {
+        setViewingUser(user);
+        setLoading(true);
+        const clients = await adminGetClientsForUserAction(user.id);
+        setUserClients(clients);
+        setLoading(false);
+        setClientDialogOpen(true);
+    };
+
+    const handleDeleteClient = async (clientId: string) => {
+        if (confirm('Are you sure you want to delete this client?')) {
+            await adminDeleteClientAction(clientId);
+            // Refresh list
+            if (viewingUser) {
+                const clients = await adminGetClientsForUserAction(viewingUser.id);
+                setUserClients(clients);
+            }
+        }
+    };
+
+    const openCopyDialog = (client: ClientSummary) => {
+        setSelectedClient(client);
+        setTargetUserId('');
+        setCopyDialogOpen(true);
+    };
+
+    const handleCopyClient = async () => {
+        if (!selectedClient || !targetUserId) return;
+        setLoading(true);
+        await adminCopyClientAction(selectedClient.id, targetUserId);
+        setLoading(false);
+        setCopyDialogOpen(false);
+        alert('Client copied successfully');
+    };
+
     return (
         <>
             <div className="rounded-md border">
@@ -89,7 +141,15 @@ export function AdminUserList({ users }: { users: User[] }) {
                             <TableRow key={user.id}>
                                 <TableCell className="font-medium">{user.username}</TableCell>
                                 <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
-                                <TableCell>{user.clientCount}</TableCell>
+                                <TableCell>
+                                    <Button
+                                        variant="link"
+                                        className="p-0 h-auto font-normal"
+                                        onClick={() => handleViewClients(user)}
+                                    >
+                                        {user.clientCount}
+                                    </Button>
+                                </TableCell>
                                 <TableCell>
                                     {user.disabled ? (
                                         <Badge variant="destructive">Disabled</Badge>
@@ -159,6 +219,99 @@ export function AdminUserList({ users }: { users: User[] }) {
                     <DialogFooter>
                         <Button onClick={handleResetPassword} disabled={loading || !newPassword}>
                             {loading ? 'Resetting...' : 'Reset Password'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={clientDialogOpen} onOpenChange={setClientDialogOpen}>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Clients for {viewingUser?.username}</DialogTitle>
+                        <DialogDescription>
+                            Manage OAuth clients for this user.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="rounded-md border mt-4">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Client ID</TableHead>
+                                    <TableHead>Redirect URI</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {userClients.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
+                                            No clients found.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    userClients.map((client) => (
+                                        <TableRow key={client.id}>
+                                            <TableCell className="font-medium">{client.name}</TableCell>
+                                            <TableCell className="font-mono text-xs">{client.clientId}</TableCell>
+                                            <TableCell className="font-mono text-xs truncate max-w-[200px]" title={client.redirectUri}>
+                                                {client.redirectUri}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <Button variant="outline" size="sm" onClick={() => openCopyDialog(client)}>
+                                                        Copy
+                                                    </Button>
+                                                    <Button variant="destructive" size="sm" onClick={() => handleDeleteClient(client.id)}>
+                                                        Delete
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Copy Client</DialogTitle>
+                        <DialogDescription>
+                            Copy <strong>{selectedClient?.name}</strong> to another user.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="target-user" className="text-right">
+                                Target User
+                            </Label>
+                            <div className="col-span-3">
+                                <Select value={targetUserId} onValueChange={setTargetUserId}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a user" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {users
+                                            .filter(u => u.id !== viewingUser?.id) // Don't copy to same user
+                                            .map(u => (
+                                                <SelectItem key={u.id} value={u.id}>
+                                                    {u.username}
+                                                </SelectItem>
+                                            ))
+                                        }
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleCopyClient} disabled={loading || !targetUserId}>
+                            {loading ? 'Copying...' : 'Copy Client'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
