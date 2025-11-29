@@ -14,8 +14,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { saveClientAction } from '@/app/actions';
-import { Plus, Pencil } from 'lucide-react';
+import { Plus, Pencil, X } from 'lucide-react';
 import { OAuthClient } from '@/lib/config';
+import { Badge } from '@/components/ui/badge';
 
 interface ClientDialogProps {
     client?: OAuthClient;
@@ -46,6 +47,12 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
             : []
     );
 
+    // Scope state
+    const [scopes, setScopes] = useState<string[]>(
+        client?.scope ? client.scope.split(' ').filter(Boolean) : []
+    );
+    const [scopeInput, setScopeInput] = useState('');
+
     // Reset state when client prop changes or dialog opens
     useEffect(() => {
         if (open) {
@@ -69,6 +76,7 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                     ? Object.entries(client.customAttributes).map(([key, value]) => ({ key, value }))
                     : []
             );
+            setScopes(client?.scope ? client.scope.split(' ').filter(Boolean) : []);
         }
     }, [open, client, defaultDomain]);
 
@@ -103,6 +111,21 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
         setCustomAttributes(newAttributes);
     }
 
+    function handleScopeKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const newScope = scopeInput.trim();
+            if (newScope && !scopes.includes(newScope)) {
+                setScopes([...scopes, newScope]);
+            }
+            setScopeInput('');
+        }
+    }
+
+    function removeScope(scopeToRemove: string) {
+        setScopes(scopes.filter(s => s !== scopeToRemove));
+    }
+
     async function handleSubmit(formData: FormData) {
         setLoading(true);
 
@@ -132,6 +155,8 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
         setOpen(false);
         if (!client) {
             setCustomAttributes([]); // Reset attributes only if creating new
+            setScopes([]);
+            setScopeInput('');
             setAuthUrl('');
             setTokenUrl('');
             setEndSessionEndpoint('');
@@ -164,33 +189,31 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                     </DialogDescription>
                 </DialogHeader>
 
-                {!isEditing && (
-                    <div className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md mb-4">
-                        <Label htmlFor="oidcUrl" className="text-xs font-semibold uppercase text-neutral-500 mb-2 block">
-                            Auto-configure from OIDC
-                        </Label>
-                        <div className="flex gap-2">
-                            <Input
-                                id="oidcUrl"
-                                placeholder="e.g. https://accounts.google.com"
-                                value={oidcUrl}
-                                onChange={(e) => setOidcUrl(e.target.value)}
-                                className="flex-1"
-                            />
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={handleDiscover}
-                                disabled={discovering || !oidcUrl}
-                            >
-                                {discovering ? '...' : 'Fetch'}
-                            </Button>
-                        </div>
-                        {discoveryError && (
-                            <p className="text-xs text-red-500 mt-2">{discoveryError}</p>
-                        )}
+                <div className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md mb-4">
+                    <Label htmlFor="oidcUrl" className="text-xs font-semibold uppercase text-neutral-500 mb-2 block">
+                        Auto-configure from OIDC
+                    </Label>
+                    <div className="flex gap-2">
+                        <Input
+                            id="oidcUrl"
+                            placeholder="e.g. https://accounts.google.com"
+                            value={oidcUrl}
+                            onChange={(e) => setOidcUrl(e.target.value)}
+                            className="flex-1"
+                        />
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={handleDiscover}
+                            disabled={discovering || !oidcUrl}
+                        >
+                            {discovering ? '...' : 'Fetch'}
+                        </Button>
                     </div>
-                )}
+                    {discoveryError && (
+                        <p className="text-xs text-red-500 mt-2">{discoveryError}</p>
+                    )}
+                </div>
 
                 <form action={handleSubmit}>
                     <div className="grid gap-4 py-4">
@@ -262,9 +285,32 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                                 onChange={(e) => setPostLogoutRedirectUri(e.target.value)}
                             />
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="scope" className="text-right">Scope</Label>
-                            <Input id="scope" name="scope" placeholder="openid profile" className="col-span-3" defaultValue={client?.scope} />
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <Label htmlFor="scopeInput" className="text-right pt-2">Scope</Label>
+                            <div className="col-span-3 space-y-2">
+                                <Input
+                                    id="scopeInput"
+                                    value={scopeInput}
+                                    onChange={(e) => setScopeInput(e.target.value)}
+                                    onKeyDown={handleScopeKeyDown}
+                                    placeholder="Type scope and press Enter"
+                                />
+                                <input type="hidden" name="scope" value={scopes.join(' ')} />
+                                <div className="flex flex-wrap gap-2">
+                                    {scopes.map((scope) => (
+                                        <Badge key={scope} variant="secondary" className="flex items-center gap-1">
+                                            {scope}
+                                            <button
+                                                type="button"
+                                                onClick={() => removeScope(scope)}
+                                                className="text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
 
                         <div className="border-t pt-4 mt-2">
