@@ -32,6 +32,7 @@ import { MoreHorizontal, Shield, ShieldAlert, Trash, Key } from 'lucide-react';
 import { adminDeleteUserAction, adminResetPasswordAction, adminToggleStatusAction, adminGetClientsForUserAction, adminDeleteClientAction, adminCopyClientAction } from '@/app/actions';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ClientDate } from '@/components/client-date';
 
 interface User {
     id: string;
@@ -140,7 +141,7 @@ export function AdminUserList({ users }: { users: User[] }) {
                         {users.map((user) => (
                             <TableRow key={user.id}>
                                 <TableCell className="font-medium">{user.username}</TableCell>
-                                <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                                <TableCell><ClientDate date={user.created_at} /></TableCell>
                                 <TableCell>
                                     <Button
                                         variant="link"
@@ -233,46 +234,41 @@ export function AdminUserList({ users }: { users: User[] }) {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="rounded-md border mt-4">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Client ID</TableHead>
-                                    <TableHead>Redirect URI</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {userClients.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
-                                            No clients found.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    userClients.map((client) => (
-                                        <TableRow key={client.id}>
-                                            <TableCell className="font-medium">{client.name}</TableCell>
-                                            <TableCell className="font-mono text-xs">{client.clientId}</TableCell>
-                                            <TableCell className="font-mono text-xs truncate max-w-[200px]" title={client.redirectUri}>
-                                                {client.redirectUri}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <Button variant="outline" size="sm" onClick={() => openCopyDialog(client)}>
-                                                        Copy
-                                                    </Button>
-                                                    <Button variant="destructive" size="sm" onClick={() => handleDeleteClient(client.id)}>
-                                                        Delete
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
+                    <div className="mt-4 space-y-4">
+                        {userClients.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground border rounded-md bg-neutral-50 dark:bg-neutral-900">
+                                No clients found.
+                            </div>
+                        ) : (
+                            userClients.map((client) => (
+                                <div key={client.id} className="border rounded-md p-4 bg-white dark:bg-neutral-900 shadow-sm">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <h3 className="font-semibold text-lg">{client.name}</h3>
+                                            <p className="text-xs text-muted-foreground">Created: <ClientDate date={client.created_at} /></p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button variant="outline" size="sm" onClick={() => openCopyDialog(client)}>
+                                                Copy
+                                            </Button>
+                                            <Button variant="destructive" size="sm" onClick={() => handleDeleteClient(client.id)}>
+                                                Delete
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
+                                            <span className="font-medium text-muted-foreground">Client ID:</span>
+                                            <span className="col-span-2 font-mono text-xs break-all">{client.clientId}</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
+                                            <span className="font-medium text-muted-foreground">Redirect URI:</span>
+                                            <span className="col-span-2 font-mono text-xs break-all">{client.redirectUri}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>
