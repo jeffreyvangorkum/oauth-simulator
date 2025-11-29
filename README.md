@@ -1,5 +1,7 @@
 # OAuth Simulator
 
+![OAuth Simulator Banner](oauth-simulator-banner.jpg)
+
 A powerful, modern web application designed to help developers test, debug, and understand OAuth 2.0 flows. This simulator provides a user-friendly interface to interact with OAuth providers, inspect tokens, and validate integration scenarios.
 
 ## Features
