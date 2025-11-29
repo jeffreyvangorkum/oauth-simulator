@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { TokenViewer } from '@/components/token-viewer';
 import { executeClientCredentialsFlow, executeRefreshTokenFlow } from '@/app/actions';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Play, Loader2 } from 'lucide-react';
+import { ArrowLeft, Play, Loader2, LogOut, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 
 // Since this is a client component (due to useSearchParams), we need to fetch client data differently or pass it down.
@@ -50,6 +50,24 @@ export default function ClientView({ client }: { client: OAuthClient }) {
         const state = client.id; // Simple state
         const url = generateAuthorizeUrl(client, state);
         window.location.href = url;
+    };
+
+    const handleLogout = () => {
+        if (!client.endSessionEndpoint) {
+            setError('No End Session Endpoint configured for this client.');
+            return;
+        }
+
+        const url = new URL(client.endSessionEndpoint);
+        if (client.postLogoutRedirectUri) {
+            url.searchParams.append('post_logout_redirect_uri', client.postLogoutRedirectUri);
+        }
+        // Some providers might need id_token_hint, but we'll start simple
+        if (tokens?.id_token) {
+            url.searchParams.append('id_token_hint', tokens.id_token);
+        }
+
+        window.location.href = url.toString();
     };
 
     const handleClientCredentialsFlow = async () => {
@@ -109,9 +127,17 @@ export default function ClientView({ client }: { client: OAuthClient }) {
                             <CardDescription>User-interactive flow for web apps.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button onClick={handleAuthCodeFlow} className="w-full">
-                                <Play className="mr-2 h-4 w-4" /> Start Flow
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button onClick={handleAuthCodeFlow} className="flex-1">
+                                    {tokens ? <RotateCcw className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
+                                    {tokens ? 'Restart Flow' : 'Start Flow'}
+                                </Button>
+                                {tokens && (
+                                    <Button onClick={handleLogout} variant="outline" title="Logout from Provider">
+                                        <LogOut className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
 

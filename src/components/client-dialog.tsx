@@ -33,8 +33,12 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
     // Form state
     const [authUrl, setAuthUrl] = useState(client?.authorizeUrl || '');
     const [tokenUrl, setTokenUrl] = useState(client?.tokenUrl || '');
+    const [endSessionEndpoint, setEndSessionEndpoint] = useState(client?.endSessionEndpoint || '');
     const [redirectUri, setRedirectUri] = useState(
         client?.redirectUri || `${defaultDomain}/api/oauth/callback`
+    );
+    const [postLogoutRedirectUri, setPostLogoutRedirectUri] = useState(
+        client?.postLogoutRedirectUri || defaultDomain
     );
     const [customAttributes, setCustomAttributes] = useState<{ key: string; value: string }[]>(
         client?.customAttributes
@@ -47,13 +51,17 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
         if (open) {
             setAuthUrl(client?.authorizeUrl || '');
             setTokenUrl(client?.tokenUrl || '');
+            setEndSessionEndpoint(client?.endSessionEndpoint || '');
             // If editing, use client's URI. If new, try to use window.location.origin, fallback to defaultDomain
             if (client) {
                 setRedirectUri(client.redirectUri);
+                setPostLogoutRedirectUri(client.postLogoutRedirectUri || defaultDomain);
             } else if (typeof window !== 'undefined') {
                 setRedirectUri(`${window.location.origin}/api/oauth/callback`);
+                setPostLogoutRedirectUri(window.location.origin);
             } else {
                 setRedirectUri(`${defaultDomain}/api/oauth/callback`);
+                setPostLogoutRedirectUri(defaultDomain);
             }
 
             setCustomAttributes(
@@ -73,6 +81,7 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
             const config = await discoverOidcAction(oidcUrl);
             if (config.authorization_endpoint) setAuthUrl(config.authorization_endpoint);
             if (config.token_endpoint) setTokenUrl(config.token_endpoint);
+            if (config.end_session_endpoint) setEndSessionEndpoint(config.end_session_endpoint);
         } catch (e: any) {
             setDiscoveryError(e.message);
         } finally {
@@ -113,6 +122,8 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
             tokenUrl: formData.get('tokenUrl') as string,
             scope: formData.get('scope') as string,
             redirectUri: formData.get('redirectUri') as string,
+            endSessionEndpoint: formData.get('endSessionEndpoint') as string,
+            postLogoutRedirectUri: formData.get('postLogoutRedirectUri') as string,
             customAttributes: attributesRecord,
         };
 
@@ -123,9 +134,11 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
             setCustomAttributes([]); // Reset attributes only if creating new
             setAuthUrl('');
             setTokenUrl('');
+            setEndSessionEndpoint('');
             // Reset redirect URI to current origin
             if (typeof window !== 'undefined') {
                 setRedirectUri(`${window.location.origin}/api/oauth/callback`);
+                setPostLogoutRedirectUri(window.location.origin);
             }
         }
     }
@@ -226,6 +239,27 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                                 required
                                 value={redirectUri}
                                 onChange={(e) => setRedirectUri(e.target.value)}
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="endSessionEndpoint" className="text-right">End Session URL</Label>
+                            <Input
+                                id="endSessionEndpoint"
+                                name="endSessionEndpoint"
+                                placeholder="https://..."
+                                className="col-span-3"
+                                value={endSessionEndpoint}
+                                onChange={(e) => setEndSessionEndpoint(e.target.value)}
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="postLogoutRedirectUri" className="text-right">Post Logout URL</Label>
+                            <Input
+                                id="postLogoutRedirectUri"
+                                name="postLogoutRedirectUri"
+                                className="col-span-3"
+                                value={postLogoutRedirectUri}
+                                onChange={(e) => setPostLogoutRedirectUri(e.target.value)}
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">

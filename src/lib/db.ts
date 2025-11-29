@@ -34,6 +34,8 @@ db.exec(`
         token_url TEXT NOT NULL,
         scope TEXT,
         redirect_uri TEXT NOT NULL,
+        end_session_endpoint TEXT,
+        post_logout_redirect_uri TEXT,
         custom_attributes TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -58,6 +60,18 @@ try {
     if (!hasCustomAttributes) {
         db.exec('ALTER TABLE clients ADD COLUMN custom_attributes TEXT');
         console.log('Migrated clients table: added custom_attributes column');
+    }
+
+    const hasEndSessionEndpoint = clientColumns.some(col => col.name === 'end_session_endpoint');
+    if (!hasEndSessionEndpoint) {
+        db.exec('ALTER TABLE clients ADD COLUMN end_session_endpoint TEXT');
+        console.log('Migrated clients table: added end_session_endpoint column');
+    }
+
+    const hasPostLogoutRedirectUri = clientColumns.some(col => col.name === 'post_logout_redirect_uri');
+    if (!hasPostLogoutRedirectUri) {
+        db.exec('ALTER TABLE clients ADD COLUMN post_logout_redirect_uri TEXT');
+        console.log('Migrated clients table: added post_logout_redirect_uri column');
     }
 
     const userColumns = db.prepare('PRAGMA table_info(users)').all() as any[];
@@ -100,6 +114,8 @@ export interface Client {
     token_url: string;
     scope?: string;
     redirect_uri: string;
+    end_session_endpoint?: string;
+    post_logout_redirect_uri?: string;
     custom_attributes?: string;
     created_at: string;
 }
@@ -257,8 +273,8 @@ export function getClientById(id: string): Client | undefined {
 
 export function createClient(client: Omit<Client, 'created_at'>) {
     const stmt = db.prepare(`
-        INSERT INTO clients (id, user_id, name, client_id, client_secret, authorize_url, token_url, scope, redirect_uri, custom_attributes)
-        VALUES (@id, @user_id, @name, @client_id, @client_secret, @authorize_url, @token_url, @scope, @redirect_uri, @custom_attributes)
+        INSERT INTO clients (id, user_id, name, client_id, client_secret, authorize_url, token_url, scope, redirect_uri, end_session_endpoint, post_logout_redirect_uri, custom_attributes)
+        VALUES (@id, @user_id, @name, @client_id, @client_secret, @authorize_url, @token_url, @scope, @redirect_uri, @end_session_endpoint, @post_logout_redirect_uri, @custom_attributes)
     `);
     stmt.run(client);
 }
@@ -273,6 +289,8 @@ export function updateClient(client: Client) {
             token_url = @token_url, 
             scope = @scope, 
             redirect_uri = @redirect_uri,
+            end_session_endpoint = @end_session_endpoint,
+            post_logout_redirect_uri = @post_logout_redirect_uri,
             custom_attributes = @custom_attributes
         WHERE id = @id AND user_id = @user_id
     `);
