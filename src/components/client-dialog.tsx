@@ -58,7 +58,7 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                 setPostLogoutRedirectUri(client.postLogoutRedirectUri || defaultDomain);
             } else if (typeof window !== 'undefined') {
                 setRedirectUri(`${window.location.origin}/api/oauth/callback`);
-                setPostLogoutRedirectUri(window.location.origin);
+                setPostLogoutRedirectUri(defaultDomain);
             } else {
                 setRedirectUri(`${defaultDomain}/api/oauth/callback`);
                 setPostLogoutRedirectUri(defaultDomain);
@@ -138,7 +138,7 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
             // Reset redirect URI to current origin
             if (typeof window !== 'undefined') {
                 setRedirectUri(`${window.location.origin}/api/oauth/callback`);
-                setPostLogoutRedirectUri(window.location.origin);
+                setPostLogoutRedirectUri(defaultDomain);
             }
         }
     }
@@ -242,7 +242,7 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="endSessionEndpoint" className="text-right">End Session URL</Label>
+                            <Label htmlFor="endSessionEndpoint" className="text-right">End Session</Label>
                             <Input
                                 id="endSessionEndpoint"
                                 name="endSessionEndpoint"
@@ -253,7 +253,7 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="postLogoutRedirectUri" className="text-right">Post Logout URL</Label>
+                            <Label htmlFor="postLogoutRedirectUri" className="text-right">Post Logout</Label>
                             <Input
                                 id="postLogoutRedirectUri"
                                 name="postLogoutRedirectUri"
