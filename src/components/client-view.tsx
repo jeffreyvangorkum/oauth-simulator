@@ -134,7 +134,7 @@ export default function ClientView({ client }: { client: OAuthClient }) {
                                 </Button>
                                 {tokens && (
                                     <Button onClick={handleLogout} variant="outline" title="Logout from Provider">
-                                        <LogOut className="h-4 w-4" />
+                                        <LogOut className="mr-2 h-4 w-4" /> Logout
                                     </Button>
                                 )}
                             </div>
