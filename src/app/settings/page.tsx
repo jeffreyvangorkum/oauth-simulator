@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateTotpSecretAction, verifyTotpAction, generateWebAuthnRegistrationOptionsAction, verifyWebAuthnRegistrationAction } from '@/app/actions';
+import { generateTotpSecretAction, verifyTotpAction, generateWebAuthnRegistrationOptionsAction, verifyWebAuthnRegistrationAction, exportClientsAction } from '@/app/actions';
 import QRCode from 'qrcode';
 import { startRegistration } from '@simplewebauthn/browser';
 
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SettingsPage() {
@@ -53,6 +53,25 @@ export default function SettingsPage() {
         } catch (error) {
             console.error(error);
             setMessage('Passkey registration failed: ' + (error as Error).message);
+        }
+    };
+
+    const handleExportClients = async () => {
+        try {
+            const clients = await exportClientsAction();
+            const json = JSON.stringify(clients, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'clients.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Failed to export clients');
         }
     };
 
@@ -110,6 +129,19 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent>
                     <Button onClick={handleRegisterPasskey} variant="outline">Register New Passkey</Button>
+                </CardContent>
+            </Card>
+
+            <Card className="max-w-md mt-6">
+                <CardHeader>
+                    <CardTitle>Export Clients</CardTitle>
+                    <CardDescription>Download all your OAuth clients as a JSON file.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button onClick={handleExportClients} variant="outline">
+                        <Download className="mr-2 h-4 w-4" />
+                        Export clients.json
+                    </Button>
                 </CardContent>
             </Card>
         </div>

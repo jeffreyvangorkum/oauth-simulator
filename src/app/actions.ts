@@ -119,6 +119,29 @@ export async function deleteClientAction(id: string) {
     revalidatePath('/');
 }
 
+export async function exportClientsAction() {
+    const { getClients } = await import('@/lib/config');
+    const clients = await getClients();
+
+    // Convert to legacy format
+    const legacyClients = clients.map(client => ({
+        id: client.id,
+        name: client.name,
+        clientId: client.clientId,
+        clientSecret: client.clientSecret,
+        authorizeUrl: client.authorizeUrl,
+        tokenUrl: client.tokenUrl,
+        scope: client.scope,
+        redirectUri: client.redirectUri,
+        endSessionEndpoint: client.endSessionEndpoint,
+        postLogoutRedirectUri: client.postLogoutRedirectUri,
+        customAttributes: client.customAttributes,
+        jwksUrl: client.jwksUrl,
+    }));
+
+    return legacyClients;
+}
+
 export async function executeRefreshTokenFlow(clientId: string, refreshToken: string) {
     try {
         const { getClient } = await import('@/lib/config');

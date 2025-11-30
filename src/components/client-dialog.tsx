@@ -259,14 +259,14 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="redirectUri" className="text-right">Redirect URI</Label>
+                            <Label htmlFor="jwksUrl" className="text-right">JWKS URL</Label>
                             <Input
-                                id="redirectUri"
-                                name="redirectUri"
+                                id="jwksUrl"
+                                name="jwksUrl"
+                                placeholder="https://.../.well-known/jwks.json"
                                 className="col-span-3"
-                                required
-                                value={redirectUri}
-                                onChange={(e) => setRedirectUri(e.target.value)}
+                                value={jwksUrl}
+                                onChange={(e) => setJwksUrl(e.target.value)}
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
@@ -281,6 +281,17 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="redirectUri" className="text-right">Redirect URI</Label>
+                            <Input
+                                id="redirectUri"
+                                name="redirectUri"
+                                className="col-span-3"
+                                required
+                                value={redirectUri}
+                                onChange={(e) => setRedirectUri(e.target.value)}
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="postLogoutRedirectUri" className="text-right">Post Logout</Label>
                             <Input
                                 id="postLogoutRedirectUri"
@@ -288,17 +299,6 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                                 className="col-span-3"
                                 value={postLogoutRedirectUri}
                                 onChange={(e) => setPostLogoutRedirectUri(e.target.value)}
-                            />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="jwksUrl" className="text-right">JWKS URL</Label>
-                            <Input
-                                id="jwksUrl"
-                                name="jwksUrl"
-                                placeholder="https://.../.well-known/jwks.json"
-                                className="col-span-3"
-                                value={jwksUrl}
-                                onChange={(e) => setJwksUrl(e.target.value)}
                             />
                         </div>
                         <div className="grid grid-cols-4 items-start gap-4">
