@@ -8,10 +8,16 @@ A powerful, modern web application designed to help developers test, debug, and 
 
 - **Multiple OAuth Flows**: Support for Authorization Code and Client Credentials flows.
 - **Token Inspection**: View and decode Access Tokens, ID Tokens, and Refresh Tokens.
+- **JWT Signature Validation**: Verify token signatures using JWKS URLs with visual validation status.
 - **Client Management**: Configure and manage multiple OAuth clients easily.
 - **OIDC Discovery**: Auto-configure clients using OpenID Connect discovery URLs.
+- **Custom Attributes**: Add custom query parameters to authorization requests.
+- **Import/Export**: Export clients to JSON (with optional secrets) and import them back.
+- **Refresh Token Flow**: Test token refresh functionality.
+- **Logout Support**: End session endpoint integration for proper logout flows.
 - **Secure Access**: Protected by built-in authentication with Multi-Factor Authentication (TOTP & WebAuthn).
 - **Modern UI**: Clean, responsive interface with Dark/Light mode support.
+- **Admin Panel**: Manage users and their clients (admin account only).
 
 ## Getting Started
 

@@ -119,7 +119,7 @@ export async function deleteClientAction(id: string) {
     revalidatePath('/');
 }
 
-export async function exportClientsAction() {
+export async function exportClientsAction(includeSecrets: boolean = true) {
     const { getClients } = await import('@/lib/config');
     const clients = await getClients();
 
@@ -128,7 +128,7 @@ export async function exportClientsAction() {
         id: client.id,
         name: client.name,
         clientId: client.clientId,
-        clientSecret: client.clientSecret,
+        clientSecret: includeSecrets ? client.clientSecret : '',
         authorizeUrl: client.authorizeUrl,
         tokenUrl: client.tokenUrl,
         scope: client.scope,
@@ -140,6 +140,37 @@ export async function exportClientsAction() {
     }));
 
     return legacyClients;
+}
+
+export async function importClientsAction(clients: any[]) {
+    const { saveClient } = await import('@/lib/config');
+    const { getSession } = await import('@/lib/auth');
+
+    const session = await getSession();
+    if (!session) throw new Error('Unauthorized');
+
+    // Import each client
+    for (const clientData of clients) {
+        const client = {
+            id: clientData.id || uuidv4(),
+            name: clientData.name,
+            clientId: clientData.clientId,
+            clientSecret: clientData.clientSecret,
+            authorizeUrl: clientData.authorizeUrl,
+            tokenUrl: clientData.tokenUrl,
+            scope: clientData.scope,
+            redirectUri: clientData.redirectUri,
+            endSessionEndpoint: clientData.endSessionEndpoint,
+            postLogoutRedirectUri: clientData.postLogoutRedirectUri,
+            customAttributes: clientData.customAttributes,
+            jwksUrl: clientData.jwksUrl,
+        };
+
+        await saveClient(client);
+    }
+
+    revalidatePath('/');
+    return { success: true, count: clients.length };
 }
 
 export async function executeRefreshTokenFlow(clientId: string, refreshToken: string) {
