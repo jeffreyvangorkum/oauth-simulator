@@ -8,13 +8,22 @@ import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+import { validateTokenSignature, ValidationResult } from '@/lib/jwks-validation';
+import { ShieldCheck, ShieldAlert, Key } from 'lucide-react';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+
 export function TokenViewer({
     token,
     label,
     grantType,
     onRefresh,
     isRefreshing,
-    hideDecoded = false
+    hideDecoded = false,
+    jwksUrl
 }: {
     token: string;
     label: string;
@@ -22,9 +31,13 @@ export function TokenViewer({
     onRefresh?: () => void;
     isRefreshing?: boolean;
     hideDecoded?: boolean;
+    jwksUrl?: string;
 }) {
     const [decoded, setDecoded] = useState<DecodedToken | null>(null);
     const [copied, setCopied] = useState(false);
+    const [activeTab, setActiveTab] = useState('decoded');
+    const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+    const [isValidating, setIsValidating] = useState(false);
 
     useEffect(() => {
         if (!hideDecoded) {
@@ -32,8 +45,29 @@ export function TokenViewer({
         }
     }, [token, hideDecoded]);
 
+    useEffect(() => {
+        if (jwksUrl && token) {
+            setIsValidating(true);
+            validateTokenSignature(token, jwksUrl)
+                .then(setValidationResult)
+                .catch(() => setValidationResult({ isValid: false, error: 'Validation error' }))
+                .finally(() => setIsValidating(false));
+        } else {
+            setValidationResult(null);
+        }
+    }, [token, jwksUrl]);
+
     const copyToClipboard = () => {
-        navigator.clipboard.writeText(token);
+        let textToCopy = token;
+
+        if (!hideDecoded && activeTab === 'decoded' && decoded) {
+            textToCopy = JSON.stringify({
+                header: decoded.header,
+                payload: decoded.payload
+            }, null, 2);
+        }
+
+        navigator.clipboard.writeText(textToCopy);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
@@ -48,6 +82,50 @@ export function TokenViewer({
                             <Badge variant="outline" className="text-xs font-normal lowercase">
                                 {grantType}
                             </Badge>
+                        )}
+                        {jwksUrl && (
+                            <div className="ml-2">
+                                {isValidating ? (
+                                    <span className="text-xs text-neutral-400">Validating...</span>
+                                ) : validationResult?.isValid ? (
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="ghost" size="sm" className="h-6 px-2 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20">
+                                                <ShieldCheck className="h-4 w-4 mr-1" />
+                                                <span className="text-xs font-medium">Verified</span>
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-80">
+                                            <div className="space-y-2">
+                                                <h4 className="font-medium flex items-center gap-2">
+                                                    <Key className="h-4 w-4" /> Signature Verified
+                                                </h4>
+                                                <div className="text-xs space-y-1 text-neutral-500">
+                                                    <p>Key ID (kid): <span className="font-mono text-neutral-900 dark:text-neutral-100">{validationResult.kid}</span></p>
+                                                    <p>Algorithm: <span className="font-mono text-neutral-900 dark:text-neutral-100">{validationResult.alg}</span></p>
+                                                </div>
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+                                ) : validationResult && (
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="ghost" size="sm" className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                                <ShieldAlert className="h-4 w-4 mr-1" />
+                                                <span className="text-xs font-medium">Invalid</span>
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-80">
+                                            <div className="space-y-2">
+                                                <h4 className="font-medium text-red-600 flex items-center gap-2">
+                                                    <ShieldAlert className="h-4 w-4" /> Verification Failed
+                                                </h4>
+                                                <p className="text-xs text-neutral-500">{validationResult.error}</p>
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+                                )}
+                            </div>
                         )}
                     </div>
                     <div className="flex gap-2">
@@ -68,7 +146,7 @@ export function TokenViewer({
                         {token}
                     </pre>
                 ) : (
-                    <Tabs defaultValue="decoded" className="w-full">
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                         <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="decoded">Decoded</TabsTrigger>
                             <TabsTrigger value="raw">Raw</TabsTrigger>

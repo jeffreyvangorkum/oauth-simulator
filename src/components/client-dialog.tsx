@@ -148,6 +148,7 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
             endSessionEndpoint: formData.get('endSessionEndpoint') as string,
             postLogoutRedirectUri: formData.get('postLogoutRedirectUri') as string,
             customAttributes: attributesRecord,
+            jwksUrl: formData.get('jwksUrl') as string,
         };
 
         await saveClientAction(data);
@@ -283,6 +284,16 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                                 className="col-span-3"
                                 value={postLogoutRedirectUri}
                                 onChange={(e) => setPostLogoutRedirectUri(e.target.value)}
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="jwksUrl" className="text-right">JWKS URL</Label>
+                            <Input
+                                id="jwksUrl"
+                                name="jwksUrl"
+                                placeholder="https://.../.well-known/jwks.json"
+                                className="col-span-3"
+                                defaultValue={client?.jwksUrl}
                             />
                         </div>
                         <div className="grid grid-cols-4 items-start gap-4">

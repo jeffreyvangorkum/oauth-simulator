@@ -14,6 +14,7 @@ export const OAuthClientSchema = z.object({
     endSessionEndpoint: z.string().url().optional().or(z.literal('')),
     postLogoutRedirectUri: z.string().url().optional().or(z.literal('')),
     customAttributes: z.record(z.string(), z.string()).optional(),
+    jwksUrl: z.string().url().optional().or(z.literal('')),
 });
 
 export type OAuthClient = z.infer<typeof OAuthClientSchema> & { id: string };
@@ -32,6 +33,7 @@ function mapClient(client: Client): OAuthClient {
         endSessionEndpoint: client.end_session_endpoint,
         postLogoutRedirectUri: client.post_logout_redirect_uri,
         customAttributes: client.custom_attributes ? JSON.parse(client.custom_attributes) : undefined,
+        jwksUrl: client.jwks_url,
     };
 }
 
@@ -62,6 +64,7 @@ export async function saveClient(clientData: OAuthClient): Promise<void> {
         end_session_endpoint: clientData.endSessionEndpoint,
         post_logout_redirect_uri: clientData.postLogoutRedirectUri,
         custom_attributes: clientData.customAttributes ? JSON.stringify(clientData.customAttributes) : undefined,
+        jwks_url: clientData.jwksUrl,
     };
 
     if (existing) {

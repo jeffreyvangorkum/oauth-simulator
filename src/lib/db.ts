@@ -74,6 +74,12 @@ try {
         console.log('Migrated clients table: added post_logout_redirect_uri column');
     }
 
+    const hasJwksUrl = clientColumns.some(col => col.name === 'jwks_url');
+    if (!hasJwksUrl) {
+        db.exec('ALTER TABLE clients ADD COLUMN jwks_url TEXT');
+        console.log('Migrated clients table: added jwks_url column');
+    }
+
     const userColumns = db.prepare('PRAGMA table_info(users)').all() as any[];
     const hasDisabled = userColumns.some(col => col.name === 'disabled');
     if (!hasDisabled) {
@@ -117,6 +123,7 @@ export interface Client {
     end_session_endpoint?: string;
     post_logout_redirect_uri?: string;
     custom_attributes?: string;
+    jwks_url?: string;
     created_at: string;
 }
 
@@ -273,8 +280,8 @@ export function getClientById(id: string): Client | undefined {
 
 export function createClient(client: Omit<Client, 'created_at'>) {
     const stmt = db.prepare(`
-        INSERT INTO clients (id, user_id, name, client_id, client_secret, authorize_url, token_url, scope, redirect_uri, end_session_endpoint, post_logout_redirect_uri, custom_attributes)
-        VALUES (@id, @user_id, @name, @client_id, @client_secret, @authorize_url, @token_url, @scope, @redirect_uri, @end_session_endpoint, @post_logout_redirect_uri, @custom_attributes)
+        INSERT INTO clients (id, user_id, name, client_id, client_secret, authorize_url, token_url, scope, redirect_uri, end_session_endpoint, post_logout_redirect_uri, custom_attributes, jwks_url)
+        VALUES (@id, @user_id, @name, @client_id, @client_secret, @authorize_url, @token_url, @scope, @redirect_uri, @end_session_endpoint, @post_logout_redirect_uri, @custom_attributes, @jwks_url)
     `);
     stmt.run(client);
 }
@@ -291,7 +298,8 @@ export function updateClient(client: Client) {
             redirect_uri = @redirect_uri,
             end_session_endpoint = @end_session_endpoint,
             post_logout_redirect_uri = @post_logout_redirect_uri,
-            custom_attributes = @custom_attributes
+            custom_attributes = @custom_attributes,
+            jwks_url = @jwks_url
         WHERE id = @id AND user_id = @user_id
     `);
     stmt.run(client);

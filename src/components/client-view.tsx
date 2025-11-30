@@ -169,10 +169,15 @@ export default function ClientView({ client }: { client: OAuthClient }) {
                                 token={tokens.access_token}
                                 label="Access Token"
                                 grantType={tokens.grant_type}
+                                jwksUrl={client.jwksUrl}
                             />
                         )}
                         {tokens.id_token && (
-                            <TokenViewer token={tokens.id_token} label="ID Token" />
+                            <TokenViewer
+                                token={tokens.id_token}
+                                label="ID Token"
+                                jwksUrl={client.jwksUrl}
+                            />
                         )}
                         {tokens.refresh_token && (
                             <TokenViewer
