@@ -129,10 +129,10 @@ export default function ClientView({ client }: { client: OAuthClient }) {
                         <CardContent>
                             <div className="flex gap-2">
                                 <Button onClick={handleAuthCodeFlow} className="flex-1">
-                                    {tokens ? <RotateCcw className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
-                                    {tokens ? 'Restart Flow' : 'Start Flow'}
+                                    {tokens?.grant_type === 'authorization_code' ? <RotateCcw className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
+                                    {tokens?.grant_type === 'authorization_code' ? 'Restart Flow' : 'Start Flow'}
                                 </Button>
-                                {tokens && (
+                                {tokens?.grant_type === 'authorization_code' && (
                                     <Button onClick={handleLogout} variant="outline" title="Logout from Provider">
                                         <LogOut className="mr-2 h-4 w-4" /> Logout
                                     </Button>
