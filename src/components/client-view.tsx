@@ -172,7 +172,7 @@ export default function ClientView({ client }: { client: OAuthClient }) {
                                 jwksUrl={client.jwksUrl}
                             />
                         )}
-                        {tokens.id_token && (
+                        {tokens.id_token && tokens.grant_type !== 'client_credentials' && (
                             <TokenViewer
                                 token={tokens.id_token}
                                 label="ID Token"
