@@ -181,6 +181,7 @@ export async function discoverOidcAction(url: string) {
             authorization_endpoint: config.authorization_endpoint,
             token_endpoint: config.token_endpoint,
             end_session_endpoint: config.end_session_endpoint,
+            jwks_uri: config.jwks_uri,
             issuer: config.issuer, // Optional but good to have
         };
     } catch (error: any) {

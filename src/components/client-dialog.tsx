@@ -41,6 +41,7 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
     const [postLogoutRedirectUri, setPostLogoutRedirectUri] = useState(
         client?.postLogoutRedirectUri || defaultDomain
     );
+    const [jwksUrl, setJwksUrl] = useState(client?.jwksUrl || '');
     const [customAttributes, setCustomAttributes] = useState<{ key: string; value: string }[]>(
         client?.customAttributes
             ? Object.entries(client.customAttributes).map(([key, value]) => ({ key, value }))
@@ -59,6 +60,7 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
             setAuthUrl(client?.authorizeUrl || '');
             setTokenUrl(client?.tokenUrl || '');
             setEndSessionEndpoint(client?.endSessionEndpoint || '');
+            setJwksUrl(client?.jwksUrl || '');
             // If editing, use client's URI. If new, try to use window.location.origin, fallback to defaultDomain
             if (client) {
                 setRedirectUri(client.redirectUri);
@@ -90,6 +92,7 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
             if (config.authorization_endpoint) setAuthUrl(config.authorization_endpoint);
             if (config.token_endpoint) setTokenUrl(config.token_endpoint);
             if (config.end_session_endpoint) setEndSessionEndpoint(config.end_session_endpoint);
+            if (config.jwks_uri) setJwksUrl(config.jwks_uri);
         } catch (e: any) {
             setDiscoveryError(e.message);
         } finally {
@@ -161,6 +164,7 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
             setAuthUrl('');
             setTokenUrl('');
             setEndSessionEndpoint('');
+            setJwksUrl('');
             // Reset redirect URI to current origin
             if (typeof window !== 'undefined') {
                 setRedirectUri(`${window.location.origin}/api/oauth/callback`);
@@ -293,7 +297,8 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                                 name="jwksUrl"
                                 placeholder="https://.../.well-known/jwks.json"
                                 className="col-span-3"
-                                defaultValue={client?.jwksUrl}
+                                value={jwksUrl}
+                                onChange={(e) => setJwksUrl(e.target.value)}
                             />
                         </div>
                         <div className="grid grid-cols-4 items-start gap-4">
