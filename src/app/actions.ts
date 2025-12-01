@@ -368,3 +368,66 @@ export async function adminCopyClientAction(clientId: string, targetUserId: stri
         return { success: false, error: e.message };
     }
 }
+
+export async function executeHttpRequestAction({
+    method,
+    url,
+    token,
+    headers = {},
+    body,
+}: {
+    method: 'GET' | 'POST';
+    url: string;
+    token: string;
+    headers?: Record<string, string>;
+    body?: any;
+}) {
+    try {
+        // Validate URL
+        new URL(url);
+
+        // Prepare headers
+        const requestHeaders: Record<string, string> = {
+            'Authorization': `Bearer ${token}`,
+            ...headers,
+        };
+
+        // Add Content-Type for POST requests with body
+        if (method === 'POST' && body) {
+            requestHeaders['Content-Type'] = 'application/json';
+        }
+
+        // Make the request
+        const response = await fetch(url, {
+            method,
+            headers: requestHeaders,
+            body: method === 'POST' && body ? JSON.stringify(body) : undefined,
+        });
+
+        // Extract response headers
+        const responseHeaders: Record<string, string> = {};
+        response.headers.forEach((value, key) => {
+            responseHeaders[key] = value;
+        });
+
+        // Get response body
+        const responseBody = await response.text();
+
+        return {
+            success: true,
+            response: {
+                status: response.status,
+                statusText: response.statusText,
+                headers: responseHeaders,
+                body: responseBody,
+            },
+        };
+    } catch (e: any) {
+        console.error('HTTP Request Error:', e);
+        return {
+            success: false,
+            error: e.message || 'Request failed',
+        };
+    }
+}
+

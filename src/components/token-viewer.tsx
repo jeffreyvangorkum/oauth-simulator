@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { decodeToken, DecodedToken } from '@/lib/oauth-service';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Check, Copy } from 'lucide-react';
+import { RefreshCw, Check, Copy, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { validateTokenSignature, ValidationResult } from '@/lib/jwks-validation';
@@ -15,6 +15,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { HttpRequestDialog } from '@/components/http-request-dialog';
 
 export function TokenViewer({
     token,
@@ -133,6 +134,16 @@ export function TokenViewer({
                             <Button variant="ghost" size="sm" onClick={onRefresh} disabled={isRefreshing}>
                                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                             </Button>
+                        )}
+                        {label === "Access Token" && (
+                            <HttpRequestDialog
+                                token={token}
+                                trigger={
+                                    <Button variant="ghost" size="sm" title="Test HTTP Request">
+                                        <Send className="h-4 w-4" />
+                                    </Button>
+                                }
+                            />
                         )}
                         <Button variant="ghost" size="sm" onClick={copyToClipboard}>
                             {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
