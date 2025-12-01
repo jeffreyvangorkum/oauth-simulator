@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, Copy, Check } from 'lucide-react';
 import { executeHttpRequestAction } from '@/app/actions';
 
 interface HttpRequestDialogProps {
@@ -24,13 +24,15 @@ interface HttpResponse {
 
 export function HttpRequestDialog({ token, trigger }: HttpRequestDialogProps) {
     const [open, setOpen] = useState(false);
-    const [method, setMethod] = useState<'GET' | 'POST'>('GET');
-    const [url, setUrl] = useState('');
-    const [jsonBody, setJsonBody] = useState('{\n  \n}');
+    const [method, setMethod] = useState<'GET' | 'POST'>('POST');
+    const [url, setUrl] = useState(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/endpoint`);
+    const [jsonBody, setJsonBody] = useState('{\n  "name": "jeffrey",\n  "email": "dev@van-gorkum.com"\n}');
     const [customHeaders, setCustomHeaders] = useState('');
     const [loading, setLoading] = useState(false);
     const [response, setResponse] = useState<HttpResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [authHeaderCopied, setAuthHeaderCopied] = useState(false);
+    const [responseCopied, setResponseCopied] = useState(false);
 
     const handleSend = async () => {
         setLoading(true);
@@ -141,8 +143,20 @@ export function HttpRequestDialog({ token, trigger }: HttpRequestDialogProps) {
                         <TabsContent value="headers" className="space-y-2">
                             <div className="space-y-2">
                                 <Label>Authorization Header (automatically included)</Label>
-                                <div className="p-2 bg-neutral-100 dark:bg-neutral-900 rounded-md font-mono text-xs break-all">
-                                    Authorization: Bearer {token.substring(0, 50)}...
+                                <div
+                                    className="p-2 bg-neutral-100 dark:bg-neutral-900 rounded-md font-mono text-xs break-all cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors"
+                                    title={`Authorization: Bearer ${token}`}
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(`Bearer ${token}`);
+                                        setAuthHeaderCopied(true);
+                                        setTimeout(() => setAuthHeaderCopied(false), 2000);
+                                    }}
+                                >
+                                    {authHeaderCopied ? (
+                                        <span className="text-green-600 dark:text-green-400">✓ Copied to clipboard</span>
+                                    ) : (
+                                        <>Authorization: Bearer {token.substring(0, 50)}... (click to copy, hover to see full)</>
+                                    )}
                                 </div>
                             </div>
                             <div className="space-y-2">
@@ -182,14 +196,27 @@ export function HttpRequestDialog({ token, trigger }: HttpRequestDialogProps) {
                     {/* Response Display */}
                     {response && (
                         <div className="space-y-3 border-t pt-4">
-                            <h4 className="font-semibold">Response</h4>
+                            <div className="flex items-center justify-between">
+                                <h4 className="font-semibold">Response</h4>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(response.body);
+                                        setResponseCopied(true);
+                                        setTimeout(() => setResponseCopied(false), 2000);
+                                    }}
+                                >
+                                    {responseCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                </Button>
+                            </div>
 
                             {/* Status */}
                             <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium">Status:</span>
                                 <span className={`text-sm font-mono px-2 py-1 rounded ${response.status >= 200 && response.status < 300
-                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                                     }`}>
                                     {response.status} {response.statusText}
                                 </span>
