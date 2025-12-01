@@ -4,14 +4,21 @@ import { execSync } from "child_process";
 
 import packageJson from "./package.json";
 
-let version = packageJson.version;
-try {
-  const gitVersion = execSync("git describe --tags").toString().trim();
-  if (gitVersion) {
-    version = gitVersion;
+// Priority order:
+// 1. NEXT_PUBLIC_APP_VERSION from Docker build arg (set in Dockerfile)
+// 2. Git describe for local development
+// 3. package.json version as final fallback
+let version = process.env.NEXT_PUBLIC_APP_VERSION || packageJson.version;
+
+if (!process.env.NEXT_PUBLIC_APP_VERSION) {
+  try {
+    const gitVersion = execSync("git describe --tags").toString().trim();
+    if (gitVersion) {
+      version = gitVersion;
+    }
+  } catch (e) {
+    // Git not available, use package.json version
   }
-} catch (e) {
-  // console.warn("Failed to fetch git tag version", e);
 }
 
 const nextConfig: NextConfig = {

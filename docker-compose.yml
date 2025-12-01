@@ -1,6 +1,9 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        APP_VERSION: ${APP_VERSION:-$(shell git describe --tags 2>/dev/null || echo "dev")}
     container_name: oauth-simulator
     ports:
       - "3000:3000"

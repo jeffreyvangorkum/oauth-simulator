@@ -14,6 +14,11 @@ RUN npm ci
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
+
+# Accept version as build argument
+ARG APP_VERSION
+ENV NEXT_PUBLIC_APP_VERSION=${APP_VERSION}
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
