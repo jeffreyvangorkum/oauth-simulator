@@ -138,6 +138,11 @@ export default function LoginPage() {
                             Register
                         </Link>
                     </div>
+                    {process.env.NEXT_PUBLIC_APP_VERSION && (
+                        <div className="mt-6 text-center text-xs text-muted-foreground">
+                            v{process.env.NEXT_PUBLIC_APP_VERSION.replace(/^v/, '')}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
