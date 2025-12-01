@@ -384,7 +384,7 @@ export async function executeHttpRequestAction({
 }) {
     try {
         // Validate URL
-        new URL(url);
+        const parsedUrl = new URL(url);
 
         // Prepare headers
         const requestHeaders: Record<string, string> = {
@@ -397,12 +397,59 @@ export async function executeHttpRequestAction({
             requestHeaders['Content-Type'] = 'application/json';
         }
 
-        // Make the request
+        console.log('Making HTTP request:', { method, url, headers: requestHeaders, body });
+
+        // Check if this is an internal request to /api/endpoint
+        // If so, call the handler directly to avoid Docker localhost issues
+        if (parsedUrl.pathname === '/api/endpoint' && (parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1')) {
+            console.log('Internal API request detected, calling handler directly');
+
+            // Import the route handler
+            const { GET, POST: POST_HANDLER } = await import('@/app/api/endpoint/route');
+
+            // Create a mock NextRequest with nextUrl property
+            const mockRequest = new Request(url, {
+                method,
+                headers: new Headers(requestHeaders),
+                body: method === 'POST' && body ? JSON.stringify(body) : undefined,
+            }) as any;
+
+            // Add nextUrl property that NextRequest expects
+            mockRequest.nextUrl = parsedUrl;
+
+            // Call the appropriate handler
+            const response = method === 'GET'
+                ? await GET(mockRequest)
+                : await POST_HANDLER(mockRequest);
+
+            // Extract response data
+            const responseHeaders: Record<string, string> = {};
+            response.headers.forEach((value, key) => {
+                responseHeaders[key] = value;
+            });
+
+            const responseBody = await response.text();
+
+            return {
+                success: true,
+                response: {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: responseHeaders,
+                    body: responseBody,
+                },
+            };
+        }
+
+        // For external requests, use fetch
         const response = await fetch(url, {
             method,
             headers: requestHeaders,
             body: method === 'POST' && body ? JSON.stringify(body) : undefined,
         });
+
+        console.log('Response status:', response.status, response.statusText);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
         // Extract response headers
         const responseHeaders: Record<string, string> = {};
@@ -412,6 +459,7 @@ export async function executeHttpRequestAction({
 
         // Get response body
         const responseBody = await response.text();
+        console.log('Response body preview:', responseBody.substring(0, 200));
 
         return {
             success: true,
@@ -430,4 +478,6 @@ export async function executeHttpRequestAction({
         };
     }
 }
+
+
 
