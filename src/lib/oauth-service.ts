@@ -1,5 +1,6 @@
 import { OAuthClient } from './config';
 import { decodeJwt } from 'jose';
+import logger from './logger';
 
 export interface TokenResponse {
     access_token: string;
@@ -41,6 +42,8 @@ export async function exchangeCodeForToken(
     client: OAuthClient,
     code: string
 ): Promise<TokenResponse> {
+    logger.debug('Starting Authorization Code Exchange', { clientId: client.clientId });
+
     const body = new URLSearchParams({
         grant_type: 'authorization_code',
         code,
@@ -58,6 +61,8 @@ export async function exchangeCodeForToken(
         body,
     });
 
+    logger.debug('Token exchange response status:', response.status);
+
     if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Token exchange failed: ${response.status} ${response.statusText} - ${errorText}`);
@@ -67,6 +72,8 @@ export async function exchangeCodeForToken(
 }
 
 export async function clientCredentialsFlow(client: OAuthClient): Promise<TokenResponse> {
+    logger.debug('Starting Client Credentials Flow', { clientId: client.clientId, tokenUrl: client.tokenUrl });
+
     const body = new URLSearchParams({
         grant_type: 'client_credentials',
         client_id: client.clientId,
@@ -86,6 +93,8 @@ export async function clientCredentialsFlow(client: OAuthClient): Promise<TokenR
         body,
     });
 
+    logger.debug('Client credentials response status:', response.status);
+
     if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Client credentials flow failed: ${response.status} ${response.statusText} - ${errorText}`);
@@ -95,6 +104,8 @@ export async function clientCredentialsFlow(client: OAuthClient): Promise<TokenR
 }
 
 export async function refreshTokenFlow(client: OAuthClient, refreshToken: string): Promise<TokenResponse> {
+    logger.debug('Starting Refresh Token Flow', { clientId: client.clientId });
+
     const body = new URLSearchParams({
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
@@ -114,6 +125,8 @@ export async function refreshTokenFlow(client: OAuthClient, refreshToken: string
         },
         body,
     });
+
+    logger.debug('Refresh token response status:', response.status);
 
     if (!response.ok) {
         const errorText = await response.text();
