@@ -51,6 +51,7 @@ The application uses the following environment variables (defined in `docker-com
 - `JWT_SECRET`: Secret key for signing session tokens. **Important**: Change this to a secure random value in production.
 - `APP_URL`: The base URL of the application (default: `http://localhost:3000`). Used for autofilling Redirect URIs and Post Logout Redirect URIs.
 - `ENABLE_REGISTRATION`: Set to `true` to allow new user registration, or `false` to disable it (default: `true`).
+- `LOG_LEVEL`: Controls application logging verbosity. Available levels: `ERROR`, `WARN`, `INFO`, `DEBUG` (default: `INFO`). Set to `DEBUG` for detailed troubleshooting.
 - `RP_ID`: Relying Party ID for WebAuthn (Passkey) authentication. Should match your domain (default: `localhost`).
 - `RP_NAME`: Display name for WebAuthn authentication (default: `OAuth Simulator`).
 - `RP_ORIGIN`: Origin URL for WebAuthn authentication. Must match the URL users access the app from (default: `http://localhost:3000`).
