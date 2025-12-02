@@ -401,8 +401,8 @@ export async function executeHttpRequestAction({
         logger.info('Making HTTP request:', { method, url, headers: requestHeaders, body });
 
         // Check if this is an internal request to /api/endpoint
-        // If so, call the handler directly to avoid Docker localhost issues
-        if (parsedUrl.pathname === '/api/endpoint' && (parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1')) {
+        // Always call the handler directly to avoid network/routing issues
+        if (parsedUrl.pathname === '/api/endpoint') {
             logger.debug('Internal API request detected, calling handler directly');
 
             // Import the route handler
