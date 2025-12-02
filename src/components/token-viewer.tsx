@@ -24,7 +24,8 @@ export function TokenViewer({
     onRefresh,
     isRefreshing,
     hideDecoded = false,
-    jwksUrl
+    jwksUrl,
+    appUrl
 }: {
     token: string;
     label: string;
@@ -33,6 +34,7 @@ export function TokenViewer({
     isRefreshing?: boolean;
     hideDecoded?: boolean;
     jwksUrl?: string;
+    appUrl?: string;
 }) {
     const [decoded, setDecoded] = useState<DecodedToken | null>(null);
     const [copied, setCopied] = useState(false);
@@ -138,6 +140,7 @@ export function TokenViewer({
                         {label === "Access Token" && (
                             <HttpRequestDialog
                                 token={token}
+                                appUrl={appUrl}
                                 trigger={
                                     <Button variant="ghost" size="sm" title="Test HTTP Request">
                                         <Send className="h-4 w-4" />

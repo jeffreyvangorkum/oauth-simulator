@@ -10,5 +10,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
         notFound();
     }
 
-    return <ClientView client={client} />;
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+
+    return <ClientView client={client} appUrl={appUrl} />;
 }

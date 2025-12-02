@@ -13,6 +13,7 @@ import { executeHttpRequestAction } from '@/app/actions';
 interface HttpRequestDialogProps {
     token: string;
     trigger: React.ReactNode;
+    appUrl?: string;
 }
 
 interface HttpResponse {
@@ -22,10 +23,11 @@ interface HttpResponse {
     body: string;
 }
 
-export function HttpRequestDialog({ token, trigger }: HttpRequestDialogProps) {
+export function HttpRequestDialog({ token, trigger, appUrl }: HttpRequestDialogProps) {
     const [open, setOpen] = useState(false);
     const [method, setMethod] = useState<'GET' | 'POST'>('POST');
-    const [url, setUrl] = useState(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/endpoint`);
+    const defaultUrl = `${appUrl || 'http://localhost:3000'}/api/endpoint`;
+    const [url, setUrl] = useState(defaultUrl);
     const [jsonBody, setJsonBody] = useState('{\n  "name": "jeffrey",\n  "email": "dev@van-gorkum.com"\n}');
     const [customHeaders, setCustomHeaders] = useState('');
     const [loading, setLoading] = useState(false);

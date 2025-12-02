@@ -20,7 +20,7 @@ import Link from 'next/link';
 // Placeholder for now, I will write the server component in the next step.
 // This file will be the ClientView component.
 
-export default function ClientView({ client }: { client: OAuthClient }) {
+export default function ClientView({ client, appUrl }: { client: OAuthClient; appUrl: string }) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const [tokens, setTokens] = useState<TokenResponse | null>(null);
@@ -170,6 +170,7 @@ export default function ClientView({ client }: { client: OAuthClient }) {
                                 label="Access Token"
                                 grantType={tokens.grant_type}
                                 jwksUrl={client.jwksUrl}
+                                appUrl={appUrl}
                             />
                         )}
                         {tokens.id_token && tokens.grant_type !== 'client_credentials' && (
