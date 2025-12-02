@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
+import logger from './logger';
 
 const DB_DIR = path.join(process.cwd(), 'data');
 if (!fs.existsSync(DB_DIR)) {
@@ -59,35 +60,35 @@ try {
     const hasCustomAttributes = clientColumns.some(col => col.name === 'custom_attributes');
     if (!hasCustomAttributes) {
         db.exec('ALTER TABLE clients ADD COLUMN custom_attributes TEXT');
-        console.log('Migrated clients table: added custom_attributes column');
+        logger.info('Migrated clients table: added custom_attributes column');
     }
 
     const hasEndSessionEndpoint = clientColumns.some(col => col.name === 'end_session_endpoint');
     if (!hasEndSessionEndpoint) {
         db.exec('ALTER TABLE clients ADD COLUMN end_session_endpoint TEXT');
-        console.log('Migrated clients table: added end_session_endpoint column');
+        logger.info('Migrated clients table: added end_session_endpoint column');
     }
 
     const hasPostLogoutRedirectUri = clientColumns.some(col => col.name === 'post_logout_redirect_uri');
     if (!hasPostLogoutRedirectUri) {
         db.exec('ALTER TABLE clients ADD COLUMN post_logout_redirect_uri TEXT');
-        console.log('Migrated clients table: added post_logout_redirect_uri column');
+        logger.info('Migrated clients table: added post_logout_redirect_uri column');
     }
 
     const hasJwksUrl = clientColumns.some(col => col.name === 'jwks_url');
     if (!hasJwksUrl) {
         db.exec('ALTER TABLE clients ADD COLUMN jwks_url TEXT');
-        console.log('Migrated clients table: added jwks_url column');
+        logger.info('Migrated clients table: added jwks_url column');
     }
 
     const userColumns = db.prepare('PRAGMA table_info(users)').all() as any[];
     const hasDisabled = userColumns.some(col => col.name === 'disabled');
     if (!hasDisabled) {
         db.exec('ALTER TABLE users ADD COLUMN disabled INTEGER DEFAULT 0');
-        console.log('Migrated users table: added disabled column');
+        logger.info('Migrated users table: added disabled column');
     }
 } catch (error) {
-    console.error('Migration failed:', error);
+    logger.error('Migration failed:', error);
 }
 
 export interface User {
@@ -142,7 +143,7 @@ export function migrateLegacyClients() {
                 if (!adminUser) {
                     const hashedPassword = bcrypt.hashSync('admin', 10);
                     adminUser = createUser('admin', hashedPassword);
-                    console.log('Created default admin user for migration');
+                    logger.info('Created default admin user for migration');
                 }
 
                 const insertStmt = db.prepare(`
@@ -161,13 +162,13 @@ export function migrateLegacyClients() {
                 });
 
                 insertMany(legacyClients);
-                console.log(`Migrated ${legacyClients.length} clients to database.`);
+                logger.info(`Migrated ${legacyClients.length} clients to database.`);
 
                 // Rename clients.json to avoid re-migration
                 fs.renameSync(CLIENTS_JSON_PATH, `${CLIENTS_JSON_PATH}.bak`);
             }
         } catch (e) {
-            console.error('Failed to migrate legacy clients:', e);
+            logger.error('Failed to migrate legacy clients:', e);
         }
     }
 }

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { saveClient, deleteClient, OAuthClient } from '@/lib/config';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
+import logger from '@/lib/logger';
 
 export async function loginAction(username: string, password: string) {
     const result = await login(username, password);
@@ -186,7 +187,7 @@ export async function executeRefreshTokenFlow(clientId: string, refreshToken: st
         const tokensWithGrantType = { ...tokens, grant_type: 'refresh_token' };
         return { success: true, tokens: tokensWithGrantType };
     } catch (e: any) {
-        console.error('Refresh Token Flow Error:', e);
+        logger.error('Refresh Token Flow Error:', e);
         return { success: false, error: e.message || 'An unexpected error occurred' };
     }
 }
@@ -204,7 +205,7 @@ export async function executeClientCredentialsFlow(clientId: string) {
         const tokensWithGrantType = { ...tokens, grant_type: 'client_credentials' };
         return { success: true, tokens: tokensWithGrantType };
     } catch (e: any) {
-        console.error('Client Credentials Flow Error:', e);
+        logger.error('Client Credentials Flow Error:', e);
         return { success: false, error: e.message || 'An unexpected error occurred' };
     }
 }
@@ -239,7 +240,7 @@ export async function discoverOidcAction(url: string) {
             issuer: config.issuer, // Optional but good to have
         };
     } catch (error: any) {
-        console.error('OIDC Discovery failed:', error);
+        logger.error('OIDC Discovery failed:', error);
         throw new Error(error.message || 'Failed to discover OIDC configuration');
     }
 }
@@ -325,7 +326,7 @@ export async function adminGetClientsForUserAction(userId: string) {
             created_at: c.created_at
         }));
     } catch (e: any) {
-        console.error('Failed to get clients:', e);
+        logger.error('Failed to get clients:', e);
         return [];
     }
 }
@@ -397,12 +398,12 @@ export async function executeHttpRequestAction({
             requestHeaders['Content-Type'] = 'application/json';
         }
 
-        console.log('Making HTTP request:', { method, url, headers: requestHeaders, body });
+        logger.info('Making HTTP request:', { method, url, headers: requestHeaders, body });
 
         // Check if this is an internal request to /api/endpoint
         // If so, call the handler directly to avoid Docker localhost issues
         if (parsedUrl.pathname === '/api/endpoint' && (parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1')) {
-            console.log('Internal API request detected, calling handler directly');
+            logger.debug('Internal API request detected, calling handler directly');
 
             // Import the route handler
             const { GET, POST: POST_HANDLER } = await import('@/app/api/endpoint/route');
@@ -448,8 +449,8 @@ export async function executeHttpRequestAction({
             body: method === 'POST' && body ? JSON.stringify(body) : undefined,
         });
 
-        console.log('Response status:', response.status, response.statusText);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+        logger.debug('Response status:', response.status, response.statusText);
+        logger.debug('Response headers:', Object.fromEntries(response.headers.entries()));
 
         // Extract response headers
         const responseHeaders: Record<string, string> = {};
@@ -459,7 +460,7 @@ export async function executeHttpRequestAction({
 
         // Get response body
         const responseBody = await response.text();
-        console.log('Response body preview:', responseBody.substring(0, 200));
+        logger.debug('Response body preview:', responseBody.substring(0, 200));
 
         return {
             success: true,
@@ -471,7 +472,7 @@ export async function executeHttpRequestAction({
             },
         };
     } catch (e: any) {
-        console.error('HTTP Request Error:', e);
+        logger.error('HTTP Request Error:', e);
         return {
             success: false,
             error: e.message || 'Request failed',
