@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify, decodeJwt, importJWK } from 'jose';
+import logger from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,10 +13,12 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleRequest(request: NextRequest, method: string) {
+    logger.info('Mock API endpoint called', { method, url: request.url });
     try {
         // Extract Authorization header
         const authHeader = request.headers.get('authorization');
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            logger.warn('API request missing or invalid Authorization header');
             return NextResponse.json(
                 {
                     success: false,
@@ -32,7 +35,9 @@ async function handleRequest(request: NextRequest, method: string) {
         let decodedToken;
         try {
             decodedToken = decodeJwt(token);
+            logger.debug('Token decoded successfully', { iss: decodedToken.iss, sub: decodedToken.sub, exp: decodedToken.exp });
         } catch (e) {
+            logger.warn('Invalid JWT format - token could not be decoded');
             return NextResponse.json(
                 {
                     success: false,
@@ -45,6 +50,7 @@ async function handleRequest(request: NextRequest, method: string) {
 
         // Check expiration
         if (decodedToken.exp && decodedToken.exp < Date.now() / 1000) {
+            logger.warn('Token expired', { exp: decodedToken.exp, expiredAt: new Date(decodedToken.exp * 1000).toISOString() });
             return NextResponse.json(
                 {
                     success: false,
@@ -84,6 +90,7 @@ async function handleRequest(request: NextRequest, method: string) {
         let signatureValidation = { validated: false, message: 'Signature validation skipped' };
 
         if (decodedToken.iss) {
+            logger.debug('Attempting JWKS signature validation', { issuer: decodedToken.iss });
             try {
                 // Try to discover JWKS endpoint
                 const issuer = decodedToken.iss as string;
@@ -114,18 +121,22 @@ async function handleRequest(request: NextRequest, method: string) {
                                     issuer: decodedToken.iss as string,
                                 });
                                 signatureValidation = { validated: true, message: 'Signature verified successfully' };
+                                logger.info('Token signature verified successfully', { kid });
                             } else {
                                 signatureValidation = { validated: false, message: 'No matching key found in JWKS' };
+                                logger.warn('No matching key found in JWKS', { kid });
                             }
                         }
                     }
                 }
             } catch (e: any) {
                 signatureValidation = { validated: false, message: `Signature validation failed: ${e.message}` };
+                logger.error('Signature validation failed:', e.message);
             }
         }
 
         // Return success response
+        logger.info('API request processed successfully', { method, signatureValidated: signatureValidation.validated });
         return NextResponse.json({
             success: true,
             message: 'Request received and token validated',
@@ -139,6 +150,7 @@ async function handleRequest(request: NextRequest, method: string) {
         });
 
     } catch (e: any) {
+        logger.error('API endpoint internal error:', e.message);
         return NextResponse.json(
             {
                 success: false,

@@ -1,4 +1,5 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import logger from './logger';
 
 export interface ValidationResult {
     isValid: boolean;
@@ -21,7 +22,7 @@ export async function validateTokenSignature(token: string, jwksUrl: string): Pr
             publicKey: key,
         };
     } catch (error: any) {
-        console.error('Token validation failed:', error);
+        logger.error('Token validation failed:', error);
         return {
             isValid: false,
             error: error.message || 'Validation failed',
