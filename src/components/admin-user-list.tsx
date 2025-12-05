@@ -66,7 +66,10 @@ export function AdminUserList({ users }: { users: User[] }) {
 
     const handleDelete = async (userId: string) => {
         if (confirm('Are you sure you want to delete this user? This action cannot be undone and will delete all their clients.')) {
-            await adminDeleteUserAction(userId);
+            const result = await adminDeleteUserAction(userId);
+            if (!result.success) {
+                alert(result.error || 'Failed to delete user');
+            }
         }
     };
 
