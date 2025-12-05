@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { updateSystemSettingsAction } from '@/app/actions';
+import { updateSystemSettingsAction, discoverOidcConfigurationAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,27 @@ export function SystemSettingsForm({ initialSettings }: { initialSettings: AuthS
     const [settings, setSettings] = useState<AuthSettings>(initialSettings);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
+    const [discoveryUrl, setDiscoveryUrl] = useState('');
+    const [discovering, setDiscovering] = useState(false);
+
+    const handleDiscover = async () => {
+        if (!discoveryUrl) return;
+        setDiscovering(true);
+        setMessage('');
+        try {
+            const result = await discoverOidcConfigurationAction(discoveryUrl);
+            if (result.success) {
+                setSettings({ ...settings, oidcIssuer: result.config.issuer });
+                setMessage('OIDC configuration discovered successfully.');
+            } else {
+                setMessage('Discovery failed: ' + result.error);
+            }
+        } catch (error) {
+            setMessage('Discovery error.');
+        } finally {
+            setDiscovering(false);
+        }
+    };
 
     const handleSave = async () => {
         setSaving(true);
@@ -86,6 +107,50 @@ export function SystemSettingsForm({ initialSettings }: { initialSettings: AuthS
                         />
                         <p className="text-sm text-neutral-500">
                             The claim from the ID token to use as the username (e.g., 'email', 'sub', 'preferred_username').
+                        </p>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="oidc-group-claim">Group Claim Name (Optional)</Label>
+                        <Input
+                            id="oidc-group-claim"
+                            value={settings.oidcGroupClaim || ''}
+                            onChange={(e) => setSettings({ ...settings, oidcGroupClaim: e.target.value })}
+                            placeholder="groups"
+                        />
+                        <p className="text-sm text-neutral-500">
+                            The claim containing user groups (e.g., 'groups', 'roles'). Leave empty to disable group checks.
+                        </p>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="oidc-required-groups">Required Groups (Optional)</Label>
+                        <Input
+                            id="oidc-required-groups"
+                            value={settings.oidcRequiredGroups || ''}
+                            onChange={(e) => setSettings({ ...settings, oidcRequiredGroups: e.target.value })}
+                            placeholder="admin, editor"
+                        />
+                        <p className="text-sm text-neutral-500">
+                            Comma-separated list of groups allowed to login. If empty, all users can login.
+                        </p>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="oidc-discovery">Discovery URL</Label>
+                        <div className="flex gap-2">
+                            <Input
+                                id="oidc-discovery"
+                                value={discoveryUrl}
+                                onChange={(e) => setDiscoveryUrl(e.target.value)}
+                                placeholder="https://your-idp.com"
+                            />
+                            <Button type="button" variant="outline" onClick={handleDiscover} disabled={discovering || !discoveryUrl}>
+                                {discovering ? 'Fetching...' : 'Fetch'}
+                            </Button>
+                        </div>
+                        <p className="text-sm text-neutral-500">
+                            Enter your OIDC Provider URL to automatically configure the Issuer.
                         </p>
                     </div>
 

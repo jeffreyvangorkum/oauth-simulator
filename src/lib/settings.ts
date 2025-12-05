@@ -5,6 +5,8 @@ export interface AuthSettings {
     enableOidcLogin: boolean;
     enableOidcAutoProvision: boolean;
     oidcUsernameClaim: string;
+    oidcGroupClaim?: string;
+    oidcRequiredGroups?: string;
     oidcIssuer?: string;
     oidcClientId?: string;
     oidcClientSecret?: string;
@@ -15,6 +17,8 @@ export function getAuthSettings(): AuthSettings {
     const enableOidcLogin = getSystemSetting('enable_oidc_login') === 'true'; // Default false
     const enableOidcAutoProvision = getSystemSetting('enable_oidc_auto_provision') !== 'false'; // Default true
     const oidcUsernameClaim = getSystemSetting('oidc_username_claim') || 'email';
+    const oidcGroupClaim = getSystemSetting('oidc_group_claim') || undefined;
+    const oidcRequiredGroups = getSystemSetting('oidc_required_groups') || undefined;
     const oidcIssuer = getSystemSetting('oidc_issuer') || undefined;
     const oidcClientId = getSystemSetting('oidc_client_id') || undefined;
     const oidcClientSecret = getSystemSetting('oidc_client_secret') || undefined;
@@ -24,6 +28,8 @@ export function getAuthSettings(): AuthSettings {
         enableOidcLogin,
         enableOidcAutoProvision,
         oidcUsernameClaim,
+        oidcGroupClaim,
+        oidcRequiredGroups,
         oidcIssuer,
         oidcClientId,
         oidcClientSecret,
@@ -42,6 +48,12 @@ export function updateAuthSettings(settings: Partial<AuthSettings>) {
     }
     if (settings.oidcUsernameClaim !== undefined) {
         setSystemSetting('oidc_username_claim', settings.oidcUsernameClaim);
+    }
+    if (settings.oidcGroupClaim !== undefined) {
+        setSystemSetting('oidc_group_claim', settings.oidcGroupClaim);
+    }
+    if (settings.oidcRequiredGroups !== undefined) {
+        setSystemSetting('oidc_required_groups', settings.oidcRequiredGroups);
     }
     if (settings.oidcIssuer !== undefined) {
         setSystemSetting('oidc_issuer', settings.oidcIssuer);

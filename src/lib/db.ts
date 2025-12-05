@@ -114,6 +114,8 @@ try {
         insertSetting.run('enable_oidc_login', process.env.OIDC_ISSUER ? 'true' : 'false');
         insertSetting.run('enable_oidc_auto_provision', 'true');
         insertSetting.run('oidc_username_claim', 'email');
+        insertSetting.run('oidc_group_claim', '');
+        insertSetting.run('oidc_required_groups', '');
 
         logger.info('Migrated environment variables to system settings');
     }

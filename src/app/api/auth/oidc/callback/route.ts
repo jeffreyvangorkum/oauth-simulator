@@ -51,6 +51,23 @@ export async function GET(request: NextRequest) {
             throw new Error(`ID token missing ${usernameClaim} claim`);
         }
 
+        // Check group membership if configured
+        if (settings.oidcGroupClaim && settings.oidcRequiredGroups) {
+            const userGroups = payload[settings.oidcGroupClaim];
+            const requiredGroups = settings.oidcRequiredGroups.split(',').map(g => g.trim());
+
+            let hasAccess = false;
+            if (Array.isArray(userGroups)) {
+                hasAccess = userGroups.some(group => requiredGroups.includes(group));
+            } else if (typeof userGroups === 'string') {
+                hasAccess = requiredGroups.includes(userGroups);
+            }
+
+            if (!hasAccess) {
+                throw new Error('Access denied: User does not have required group membership');
+            }
+        }
+
         // Login user
         const result = await loginWithOidc(identifier as string);
 

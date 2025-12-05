@@ -523,3 +523,14 @@ export async function mergeAccountsAction(sourceUserId: string, targetUserId: st
         return { success: false, error: e.message };
     }
 }
+
+export async function discoverOidcConfigurationAction(url: string) {
+    try {
+        await requireAdmin();
+        const { discoverOidcEndpoints } = await import('@/lib/oidc');
+        const config = await discoverOidcEndpoints(url);
+        return { success: true, config };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
