@@ -206,6 +206,25 @@ export function migrateLegacyClients() {
     }
 }
 
+export function ensureAdminUser() {
+    const adminUsername = 'admin';
+    let adminUser = getUserByUsername(adminUsername);
+    const envPassword = process.env.ADMIN_USER_PWD;
+
+    if (!adminUser) {
+        // Create if not exists
+        const initialPassword = envPassword || 'admin';
+        const hashedPassword = bcrypt.hashSync(initialPassword, 10);
+        createUser(adminUsername, hashedPassword);
+        logger.info('Created default admin user');
+    } else if (envPassword) {
+        // Update password if env var is set
+        const hashedPassword = bcrypt.hashSync(envPassword, 10);
+        updateUserPassword(adminUser.id, hashedPassword);
+        logger.info('Updated admin user password from environment variable');
+    }
+}
+
 // User functions
 export function createUser(username: string, passwordHash: string, email?: string): User {
     const id = uuidv4();
@@ -248,6 +267,11 @@ export function getAllUsers(): (User & { clientCount: number })[] {
 }
 
 export function deleteUser(id: string) {
+    const user = getUser(id);
+    if (user && user.username === 'admin') {
+        throw new Error('Cannot delete admin user');
+    }
+
     // Due to ON DELETE CASCADE, clients and authenticators should be deleted automatically
     // But better-sqlite3 might not have foreign key constraints enabled by default in all environments
     // So let's enable them or do manual deletion just in case to be safe
@@ -380,5 +404,6 @@ export function setSystemSetting(key: string, value: string) {
 
 // Run migration on module load (safe because of checks)
 migrateLegacyClients();
+ensureAdminUser();
 
 export default db;

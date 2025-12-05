@@ -81,7 +81,7 @@ export function SystemSettingsForm({ initialSettings }: { initialSettings: AuthS
             </div>
 
             {settings.enableOidcLogin && (
-                <div className="space-y-4 border-t pt-4">
+                <div className="space-y-6 border-t pt-4">
                     <h3 className="text-lg font-medium">OIDC Configuration</h3>
 
                     <div className="flex items-center justify-between">
@@ -95,45 +95,6 @@ export function SystemSettingsForm({ initialSettings }: { initialSettings: AuthS
                             checked={settings.enableOidcAutoProvision}
                             onCheckedChange={(checked) => setSettings({ ...settings, enableOidcAutoProvision: checked })}
                         />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="oidc-username-claim">Username Claim</Label>
-                        <Input
-                            id="oidc-username-claim"
-                            value={settings.oidcUsernameClaim || 'email'}
-                            onChange={(e) => setSettings({ ...settings, oidcUsernameClaim: e.target.value })}
-                            placeholder="email"
-                        />
-                        <p className="text-sm text-neutral-500">
-                            The claim from the ID token to use as the username (e.g., 'email', 'sub', 'preferred_username').
-                        </p>
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="oidc-group-claim">Group Claim Name (Optional)</Label>
-                        <Input
-                            id="oidc-group-claim"
-                            value={settings.oidcGroupClaim || ''}
-                            onChange={(e) => setSettings({ ...settings, oidcGroupClaim: e.target.value })}
-                            placeholder="groups"
-                        />
-                        <p className="text-sm text-neutral-500">
-                            The claim containing user groups (e.g., 'groups', 'roles'). Leave empty to disable group checks.
-                        </p>
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="oidc-required-groups">Required Groups (Optional)</Label>
-                        <Input
-                            id="oidc-required-groups"
-                            value={settings.oidcRequiredGroups || ''}
-                            onChange={(e) => setSettings({ ...settings, oidcRequiredGroups: e.target.value })}
-                            placeholder="admin, editor"
-                        />
-                        <p className="text-sm text-neutral-500">
-                            Comma-separated list of groups allowed to login. If empty, all users can login.
-                        </p>
                     </div>
 
                     <div className="grid gap-2">
@@ -154,33 +115,82 @@ export function SystemSettingsForm({ initialSettings }: { initialSettings: AuthS
                         </p>
                     </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="oidc-issuer">Issuer URL</Label>
-                        <Input
-                            id="oidc-issuer"
-                            value={settings.oidcIssuer || ''}
-                            onChange={(e) => setSettings({ ...settings, oidcIssuer: e.target.value })}
-                            placeholder="https://your-idp.com"
-                        />
+                    <div className="space-y-4">
+                        <h4 className="text-base font-medium border-b pb-2">Connection Details</h4>
+                        <div className="grid gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="oidc-issuer">Issuer URL</Label>
+                                <Input
+                                    id="oidc-issuer"
+                                    value={settings.oidcIssuer || ''}
+                                    onChange={(e) => setSettings({ ...settings, oidcIssuer: e.target.value })}
+                                    placeholder="https://your-idp.com"
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="oidc-client-id">Client ID</Label>
+                                    <Input
+                                        id="oidc-client-id"
+                                        value={settings.oidcClientId || ''}
+                                        onChange={(e) => setSettings({ ...settings, oidcClientId: e.target.value })}
+                                        placeholder="client-id"
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="oidc-client-secret">Client Secret</Label>
+                                    <Input
+                                        id="oidc-client-secret"
+                                        type="password"
+                                        value={settings.oidcClientSecret || ''}
+                                        onChange={(e) => setSettings({ ...settings, oidcClientSecret: e.target.value })}
+                                        placeholder="client-secret"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="oidc-client-id">Client ID</Label>
-                        <Input
-                            id="oidc-client-id"
-                            value={settings.oidcClientId || ''}
-                            onChange={(e) => setSettings({ ...settings, oidcClientId: e.target.value })}
-                            placeholder="client-id"
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="oidc-client-secret">Client Secret</Label>
-                        <Input
-                            id="oidc-client-secret"
-                            type="password"
-                            value={settings.oidcClientSecret || ''}
-                            onChange={(e) => setSettings({ ...settings, oidcClientSecret: e.target.value })}
-                            placeholder="client-secret"
-                        />
+
+                    <div className="space-y-4">
+                        <h4 className="text-base font-medium border-b pb-2">Claims Configuration</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="oidc-username-claim">Username Claim</Label>
+                                <Input
+                                    id="oidc-username-claim"
+                                    value={settings.oidcUsernameClaim || 'email'}
+                                    onChange={(e) => setSettings({ ...settings, oidcUsernameClaim: e.target.value })}
+                                    placeholder="email"
+                                />
+                                <p className="text-xs text-neutral-500">
+                                    ID token claim for username.
+                                </p>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="oidc-group-claim">Group Claim (Optional)</Label>
+                                <Input
+                                    id="oidc-group-claim"
+                                    value={settings.oidcGroupClaim || ''}
+                                    onChange={(e) => setSettings({ ...settings, oidcGroupClaim: e.target.value })}
+                                    placeholder="groups"
+                                />
+                                <p className="text-xs text-neutral-500">
+                                    ID token claim for groups.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="oidc-required-groups">Required Groups (Optional)</Label>
+                            <Input
+                                id="oidc-required-groups"
+                                value={settings.oidcRequiredGroups || ''}
+                                onChange={(e) => setSettings({ ...settings, oidcRequiredGroups: e.target.value })}
+                                placeholder="admin, editor"
+                            />
+                            <p className="text-sm text-neutral-500">
+                                Comma-separated list of groups allowed to login.
+                            </p>
+                        </div>
                     </div>
                 </div>
             )}
