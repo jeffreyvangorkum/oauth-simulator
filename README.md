@@ -7,7 +7,7 @@ A powerful, modern web application designed to help developers test, debug, and 
 ## Features
 
 - **Multiple OAuth Flows**: Support for Authorization Code and Client Credentials flows.
-- **Token Inspection**: View and decode Access Tokens, ID Tokens, and Refresh Tokens.
+- **Token Inspection**: View and decode Access Tokens and ID Tokens. View opaque Refresh Tokens.
 - **JWT Signature Validation**: Verify token signatures using JWKS URLs with visual validation status.
 - **Client Management**: Configure and manage multiple OAuth clients easily.
 - **OIDC Discovery**: Auto-configure clients using OpenID Connect discovery URLs.
@@ -15,6 +15,8 @@ A powerful, modern web application designed to help developers test, debug, and 
 - **Import/Export**: Export clients to JSON (with optional secrets) and import them back.
 - **Refresh Token Flow**: Test token refresh functionality.
 - **Logout Support**: End session endpoint integration for proper logout flows.
+- **Mock API Endpoint**: Internal mock API endpoint for testing HTTP requests.
+- **System Settings**: Configure authentication methods (SSO/Local) and OIDC details via UI.
 - **Secure Access**: Protected by built-in authentication with Multi-Factor Authentication (TOTP & WebAuthn).
 - **Modern UI**: Clean, responsive interface with Dark/Light mode support.
 - **Admin Panel**: Manage users and their clients (admin account only).
@@ -39,7 +41,7 @@ A powerful, modern web application designed to help developers test, debug, and 
 ### Authentication
 
 - **Registration**: Create a new account on the registration page.
-- **Login**: Log in with your username and password.
+- **Login**: Log in with your username and password or via SSO (OIDC).
 - **MFA**: Enable TOTP or WebAuthn (Passkeys) in the Settings page for enhanced security.
 
 ## Configuration
@@ -51,6 +53,8 @@ The application uses the following environment variables (defined in `docker-com
 - `JWT_SECRET`: Secret key for signing session tokens. **Important**: Change this to a secure random value in production.
 - `APP_URL`: The base URL of the application (default: `http://localhost:3000`). Used for autofilling Redirect URIs and Post Logout Redirect URIs.
 - `ENABLE_REGISTRATION`: Set to `true` to allow new user registration, or `false` to disable it (default: `true`).
+- `OIDC_CLIENT_SECRET`: Client Secret for the configured OIDC provider (optional if configured via UI).
+- `ADMIN_USER_PWD`: Initial password for the default `admin` user. Updates the admin password on startup if set.
 - `LOG_LEVEL`: Controls application logging verbosity. Available levels: `ERROR`, `WARN`, `INFO`, `DEBUG` (default: `INFO`). Set to `DEBUG` for detailed troubleshooting.
 - `RP_ID`: Relying Party ID for WebAuthn (Passkey) authentication. Should match your domain (default: `localhost`).
 - `RP_NAME`: Display name for WebAuthn authentication (default: `OAuth Simulator`).
