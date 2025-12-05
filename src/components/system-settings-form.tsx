@@ -35,6 +35,10 @@ export function SystemSettingsForm({ initialSettings }: { initialSettings: AuthS
     };
 
     const handleSave = async () => {
+        if (!settings.enablePasswordLogin && !settings.enableOidcLogin) {
+            setMessage('At least one login method must be enabled.');
+            return;
+        }
         setSaving(true);
         setMessage('');
         try {

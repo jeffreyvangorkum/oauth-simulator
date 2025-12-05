@@ -499,6 +499,15 @@ export async function getAuthSettingsAction() {
 export async function updateSystemSettingsAction(settings: Partial<AuthSettings>) {
     try {
         await requireAdmin();
+
+        // Fetch current settings to merge with updates
+        const currentSettings = getAuthSettings();
+        const newSettings = { ...currentSettings, ...settings };
+
+        if (!newSettings.enablePasswordLogin && !newSettings.enableOidcLogin) {
+            return { success: false, error: 'At least one login method must be enabled' };
+        }
+
         updateAuthSettings(settings);
         revalidatePath('/');
         return { success: true };
