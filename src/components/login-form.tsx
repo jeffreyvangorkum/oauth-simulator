@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { startAuthentication } from '@simplewebauthn/browser';
 
-export function LoginForm({ enableRegistration }: { enableRegistration: boolean }) {
+export function LoginForm({ enableRegistration, authSettings }: { enableRegistration: boolean, authSettings: { enablePasswordLogin: boolean, enableOidcLogin: boolean } }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -67,71 +67,89 @@ export function LoginForm({ enableRegistration }: { enableRegistration: boolean 
                 <CardDescription>Enter your credentials to access your account.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="username">Username</Label>
-                        <Input
-                            id="username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            required
-                            disabled={mfaRequired}
-                        />
-                    </div>
-                    {!mfaRequired && (
+                {authSettings.enablePasswordLogin && (
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="username">Username</Label>
                             <Input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                id="username"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
                                 required
+                                disabled={mfaRequired}
                             />
                         </div>
-                    )}
-                    {mfaRequired && (
-                        <div className="space-y-2">
-                            <Label htmlFor="mfa">MFA Code</Label>
-                            <Input
-                                id="mfa"
-                                value={mfaToken}
-                                onChange={(e) => setMfaToken(e.target.value)}
-                                required
-                                placeholder="123456"
-                            />
-                        </div>
-                    )}
-                    {error && <p className="text-sm text-red-500">{error}</p>}
-                    <Button type="submit" className="w-full">
-                        {mfaRequired ? 'Verify' : 'Login'}
-                    </Button>
-                </form>
+                        {!mfaRequired && (
+                            <div className="space-y-2">
+                                <Label htmlFor="password">Password</Label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        )}
+                        {mfaRequired && (
+                            <div className="space-y-2">
+                                <Label htmlFor="mfa">MFA Code</Label>
+                                <Input
+                                    id="mfa"
+                                    value={mfaToken}
+                                    onChange={(e) => setMfaToken(e.target.value)}
+                                    required
+                                    placeholder="123456"
+                                />
+                            </div>
+                        )}
+                        {error && <p className="text-sm text-red-500">{error}</p>}
+                        <Button type="submit" className="w-full">
+                            {mfaRequired ? 'Verify' : 'Login'}
+                        </Button>
+                    </form>
+                )}
 
                 {!mfaRequired && (
                     <div className="mt-4">
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t" />
+                        {authSettings.enablePasswordLogin && (
+                            <div className="relative">
+                                <div className="absolute inset-0 flex items-center">
+                                    <span className="w-full border-t" />
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-background px-2 text-muted-foreground">
+                                        Or continue with
+                                    </span>
+                                </div>
                             </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-background px-2 text-muted-foreground">
-                                    Or continue with
-                                </span>
-                            </div>
-                        </div>
-                        <Button
-                            variant="outline"
-                            type="button"
-                            className="w-full mt-4"
-                            onClick={handlePasskeyLogin}
-                        >
-                            Passkey
-                        </Button>
+                        )}
+
+                        {authSettings.enablePasswordLogin && (
+                            <Button
+                                variant="outline"
+                                type="button"
+                                className="w-full mt-4"
+                                onClick={handlePasskeyLogin}
+                            >
+                                Passkey
+                            </Button>
+                        )}
+
+                        {authSettings.enableOidcLogin && (
+                            <Button
+                                variant="outline"
+                                type="button"
+                                className="w-full mt-2"
+                                onClick={() => window.location.href = '/api/auth/oidc/login'}
+                            >
+                                Login with SSO
+                            </Button>
+                        )}
                     </div>
                 )}
 
-                {enableRegistration && (
+                {enableRegistration && authSettings.enablePasswordLogin && (
                     <div className="mt-4 text-center text-sm">
                         Don&apos;t have an account?{' '}
                         <Link href="/register" className="underline">

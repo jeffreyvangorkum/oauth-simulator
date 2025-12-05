@@ -8,6 +8,13 @@ import { v4 as uuidv4 } from 'uuid';
 import logger from '@/lib/logger';
 
 export async function loginAction(username: string, password: string) {
+    const { getAuthSettings } = await import('@/lib/settings');
+    const settings = getAuthSettings();
+
+    if (!settings.enablePasswordLogin) {
+        return { success: false, error: 'Password login is disabled' };
+    }
+
     const result = await login(username, password);
     if (result.success) {
         redirect('/');
@@ -482,3 +489,37 @@ export async function executeHttpRequestAction({
 
 
 
+// System Settings Actions
+import { getAuthSettings, updateAuthSettings, AuthSettings } from '@/lib/settings';
+
+export async function getAuthSettingsAction() {
+    return getAuthSettings();
+}
+
+export async function updateSystemSettingsAction(settings: Partial<AuthSettings>) {
+    try {
+        await requireAdmin();
+        updateAuthSettings(settings);
+        revalidatePath('/');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function mergeAccountsAction(sourceUserId: string, targetUserId: string) {
+    try {
+        await requireAdmin();
+        const { mergeUsers } = await import('@/lib/db');
+
+        if (sourceUserId === targetUserId) {
+            return { success: false, error: 'Cannot merge an account into itself' };
+        }
+
+        mergeUsers(sourceUserId, targetUserId);
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}

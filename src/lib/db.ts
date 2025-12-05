@@ -17,6 +17,7 @@ db.exec(`
     CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE,
         password_hash TEXT NOT NULL,
         totp_secret TEXT,
         webauthn_credentials TEXT,
@@ -51,6 +52,11 @@ db.exec(`
         transports TEXT,
         user_id TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS system_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
     );
 `);
 
@@ -87,6 +93,30 @@ try {
         db.exec('ALTER TABLE users ADD COLUMN disabled INTEGER DEFAULT 0');
         logger.info('Migrated users table: added disabled column');
     }
+
+    const hasEmail = userColumns.some(col => col.name === 'email');
+    if (!hasEmail) {
+        db.exec('ALTER TABLE users ADD COLUMN email TEXT UNIQUE');
+        logger.info('Migrated users table: added email column');
+    }
+
+    // Migrate env vars to system settings if empty
+    const settingsCount = db.prepare('SELECT COUNT(*) as count FROM system_settings').get() as { count: number };
+    if (settingsCount.count === 0) {
+        const insertSetting = db.prepare('INSERT INTO system_settings (key, value) VALUES (?, ?)');
+
+        if (process.env.OIDC_ISSUER) insertSetting.run('oidc_issuer', process.env.OIDC_ISSUER);
+        if (process.env.OIDC_CLIENT_ID) insertSetting.run('oidc_client_id', process.env.OIDC_CLIENT_ID);
+        if (process.env.OIDC_CLIENT_ID) insertSetting.run('oidc_client_secret', process.env.OIDC_CLIENT_SECRET || '');
+
+        // Default enabled methods
+        insertSetting.run('enable_password_login', 'true');
+        insertSetting.run('enable_oidc_login', process.env.OIDC_ISSUER ? 'true' : 'false');
+        insertSetting.run('enable_oidc_auto_provision', 'true');
+        insertSetting.run('oidc_username_claim', 'email');
+
+        logger.info('Migrated environment variables to system settings');
+    }
 } catch (error) {
     logger.error('Migration failed:', error);
 }
@@ -94,6 +124,7 @@ try {
 export interface User {
     id: string;
     username: string;
+    email?: string;
     password_hash: string;
     totp_secret?: string;
     current_challenge?: string;
@@ -174,10 +205,10 @@ export function migrateLegacyClients() {
 }
 
 // User functions
-export function createUser(username: string, passwordHash: string): User {
+export function createUser(username: string, passwordHash: string, email?: string): User {
     const id = uuidv4();
-    const stmt = db.prepare('INSERT INTO users (id, username, password_hash, disabled) VALUES (?, ?, ?, 0)');
-    stmt.run(id, username, passwordHash);
+    const stmt = db.prepare('INSERT INTO users (id, username, password_hash, email, disabled) VALUES (?, ?, ?, ?, 0)');
+    stmt.run(id, username, passwordHash, email || null);
     return getUser(id)!;
 }
 
@@ -189,6 +220,12 @@ export function getUser(id: string): User | undefined {
 
 export function getUserByUsername(username: string): User | undefined {
     const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as any;
+    if (!user) return undefined;
+    return { ...user, disabled: !!user.disabled };
+}
+
+export function getUserByEmail(email: string): User | undefined {
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
     if (!user) return undefined;
     return { ...user, disabled: !!user.disabled };
 }
@@ -214,6 +251,21 @@ export function deleteUser(id: string) {
     // So let's enable them or do manual deletion just in case to be safe
     db.pragma('foreign_keys = ON');
     db.prepare('DELETE FROM users WHERE id = ?').run(id);
+}
+
+export function mergeUsers(sourceUserId: string, targetUserId: string) {
+    const transaction = db.transaction(() => {
+        // Move clients
+        db.prepare('UPDATE clients SET user_id = ? WHERE user_id = ?').run(targetUserId, sourceUserId);
+
+        // Move authenticators
+        db.prepare('UPDATE authenticators SET user_id = ? WHERE user_id = ?').run(targetUserId, sourceUserId);
+
+        // Delete source user
+        db.prepare('DELETE FROM users WHERE id = ?').run(sourceUserId);
+    });
+
+    transaction();
 }
 
 export function updateUserPassword(id: string, passwordHash: string) {
@@ -312,6 +364,16 @@ export function deleteClient(id: string, userId: string) {
 
 export function adminDeleteClient(id: string) {
     db.prepare('DELETE FROM clients WHERE id = ?').run(id);
+}
+
+// Settings functions
+export function getSystemSetting(key: string): string | null {
+    const row = db.prepare('SELECT value FROM system_settings WHERE key = ?').get(key) as { value: string } | undefined;
+    return row ? row.value : null;
+}
+
+export function setSystemSetting(key: string, value: string) {
+    db.prepare('INSERT OR REPLACE INTO system_settings (key, value) VALUES (?, ?)').run(key, value);
 }
 
 // Run migration on module load (safe because of checks)

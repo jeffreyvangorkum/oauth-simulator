@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { SignJWT, jwtVerify } from 'jose';
-import { getUserByUsername, createUser, User } from './db';
+import { getUserByUsername, getUserByEmail, createUser, User } from './db';
 import bcrypt from 'bcryptjs';
 import logger from './logger';
 
@@ -68,6 +68,48 @@ export async function loginWithMfa(username: string, token: string): Promise<{ s
     }
 
     logger.info('MFA login successful for user:', username);
+    return createSession(user);
+}
+
+export async function loginWithOidc(identifier: string): Promise<{ success: boolean; error?: string }> {
+    logger.debug('OIDC login attempt for identifier:', identifier);
+    // User requested that the claim maps to the username in the database
+    let user = getUserByUsername(identifier);
+
+    if (!user) {
+        // Check if auto-provisioning is enabled
+        const { getAuthSettings } = await import('./settings');
+        const settings = getAuthSettings();
+
+        if (!settings.enableOidcAutoProvision) {
+            logger.warn('OIDC login failed - user not found and auto-provisioning disabled:', identifier);
+            return { success: false, error: 'Account not found and registration is disabled' };
+        }
+
+        logger.info('OIDC login - user not found, creating new user for:', identifier);
+        // Auto-provision user
+        // Use identifier as username directly as requested
+        const username = identifier;
+        // Generate a random password since they will use OIDC
+        const randomPassword = Math.random().toString(36).slice(-8);
+        const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+        // We don't have an email if the claim wasn't email, so we pass null or try to infer it if it looks like an email
+        const email = identifier.includes('@') ? identifier : undefined;
+
+        user = createUser(username, hashedPassword, email);
+    }
+
+    if (!user) {
+        return { success: false, error: 'Failed to create user' };
+    }
+
+    if (user.disabled) {
+        logger.warn('OIDC login failed - account disabled:', user.username);
+        return { success: false, error: 'Account is disabled' };
+    }
+
+    logger.info('OIDC login successful for user:', user.username);
     return createSession(user);
 }
 

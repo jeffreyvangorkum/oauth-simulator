@@ -1,5 +1,7 @@
-import { adminGetUsersAction } from '@/app/actions';
+import { adminGetUsersAction, getAuthSettingsAction } from '@/app/actions';
 import { AdminUserList } from '@/components/admin-user-list';
+import { SystemSettingsForm } from '@/components/system-settings-form';
+import { AdminMergeAccounts } from '@/components/admin-merge-accounts';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
@@ -13,6 +15,7 @@ export default async function AdminPage() {
     }
 
     const users = await adminGetUsersAction();
+    const settings = await getAuthSettingsAction();
 
     return (
         <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 p-8">
@@ -29,6 +32,19 @@ export default async function AdminPage() {
                             Manage users and system settings.
                         </p>
                     </div>
+                </div>
+
+                <div className="bg-white dark:bg-neutral-900 rounded-lg shadow p-6">
+                    <h2 className="text-xl font-semibold mb-4">System Settings</h2>
+                    <SystemSettingsForm initialSettings={settings} />
+                </div>
+
+                <div className="bg-white dark:bg-neutral-900 rounded-lg shadow p-6">
+                    <h2 className="text-xl font-semibold mb-4">Merge Accounts</h2>
+                    <p className="text-sm text-neutral-500 mb-4">
+                        Merge a source account into a target account. All clients and authenticators will be moved to the target account, and the source account will be deleted.
+                    </p>
+                    <AdminMergeAccounts users={users} />
                 </div>
 
                 <div className="bg-white dark:bg-neutral-900 rounded-lg shadow p-6">
