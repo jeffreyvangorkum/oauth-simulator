@@ -211,20 +211,40 @@ export function migrateLegacyClients() {
 
 export function ensureAdminUser() {
     const adminUsername = 'admin';
-    let adminUser = getUserByUsername(adminUsername);
     const envPassword = process.env.ADMIN_USER_PWD;
 
-    if (!adminUser) {
-        // Create if not exists
-        const initialPassword = envPassword || 'admin';
-        const hashedPassword = bcrypt.hashSync(initialPassword, 10);
-        createUser(adminUsername, hashedPassword);
-        logger.info('Created default admin user');
-    } else if (envPassword) {
-        // Update password if env var is set
-        const hashedPassword = bcrypt.hashSync(envPassword, 10);
-        updateUserPassword(adminUser.id, hashedPassword);
-        logger.info('Updated admin user password from environment variable');
+    try {
+        let adminUser = getUserByUsername(adminUsername);
+
+        if (!adminUser) {
+            // Create if not exists
+            const initialPassword = envPassword || 'admin';
+            const hashedPassword = bcrypt.hashSync(initialPassword, 10);
+            try {
+                createUser(adminUsername, hashedPassword);
+                logger.info('Created default admin user');
+            } catch (error: any) {
+                // Handle race condition: another worker may have created the user
+                if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+                    logger.debug('Admin user already exists (created by another worker)');
+                    adminUser = getUserByUsername(adminUsername);
+                } else {
+                    throw error;
+                }
+            }
+        }
+
+        // Update password if env var is set (check again in case it was just created)
+        if (envPassword) {
+            adminUser = adminUser || getUserByUsername(adminUsername);
+            if (adminUser) {
+                const hashedPassword = bcrypt.hashSync(envPassword, 10);
+                updateUserPassword(adminUser.id, hashedPassword);
+                logger.info('Updated admin user password from environment variable');
+            }
+        }
+    } catch (error) {
+        logger.error('Failed to ensure admin user:', error);
     }
 }
 
