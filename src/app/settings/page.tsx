@@ -6,10 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { generateTotpSecretAction, verifyTotpAction, generateWebAuthnRegistrationOptionsAction, verifyWebAuthnRegistrationAction, exportClientsAction, importClientsAction } from '@/app/actions';
+import { generateTotpSecretAction, verifyTotpAction, exportClientsAction, importClientsAction } from '@/app/actions';
 import QRCode from 'qrcode';
-import { startRegistration } from '@simplewebauthn/browser';
-
 import { ArrowLeft, Download, Upload } from 'lucide-react';
 import Link from 'next/link';
 
@@ -42,23 +40,6 @@ export default function SettingsPage() {
             setQrCodeUrl(null);
         } else {
             setMessage('Invalid code. Please try again.');
-        }
-    };
-
-    const handleRegisterPasskey = async () => {
-        try {
-            const options = await generateWebAuthnRegistrationOptionsAction();
-            const attResp = await startRegistration({ optionsJSON: options });
-            const verificationResp = await verifyWebAuthnRegistrationAction(attResp);
-
-            if (verificationResp.success) {
-                setMessage('Passkey registered successfully!');
-            } else {
-                setMessage('Passkey registration failed.');
-            }
-        } catch (error) {
-            console.error(error);
-            setMessage('Passkey registration failed: ' + (error as Error).message);
         }
     };
 
@@ -192,16 +173,6 @@ export default function SettingsPage() {
                             {message}
                         </p>
                     )}
-                </CardContent>
-            </Card>
-
-            <Card className="max-w-md mt-6">
-                <CardHeader>
-                    <CardTitle>Passkeys (WebAuthn)</CardTitle>
-                    <CardDescription>Login securely with TouchID, FaceID, or a security key.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button onClick={handleRegisterPasskey} variant="outline">Register New Passkey</Button>
                 </CardContent>
             </Card>
 

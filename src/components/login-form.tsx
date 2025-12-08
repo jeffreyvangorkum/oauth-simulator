@@ -1,13 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { loginAction, loginWithMfaAction, generateWebAuthnLoginOptionsAction, verifyWebAuthnLoginAction } from '@/app/actions';
+import { loginAction, loginWithMfaAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { startAuthentication } from '@simplewebauthn/browser';
 
 export function LoginForm({ enableRegistration, authSettings }: { enableRegistration: boolean, authSettings: { enablePasswordLogin: boolean, enableOidcLogin: boolean } }) {
     const [username, setUsername] = useState('');
@@ -35,28 +34,6 @@ export function LoginForm({ enableRegistration, authSettings }: { enableRegistra
             } else {
                 setError(result.error || 'Login failed');
             }
-        }
-    };
-
-    const handlePasskeyLogin = async () => {
-        setError('');
-        if (!username) {
-            setError('Please enter your username first');
-            return;
-        }
-
-        try {
-            const options = await generateWebAuthnLoginOptionsAction(username);
-            const asseResp = await startAuthentication({ optionsJSON: options });
-            const verificationResp = await verifyWebAuthnLoginAction(username, asseResp);
-
-            if (!verificationResp.success) {
-                const errorMessage = 'error' in verificationResp ? verificationResp.error : 'Passkey login failed';
-                setError(errorMessage as string);
-            }
-        } catch (error) {
-            console.error(error);
-            setError('Passkey login failed: ' + (error as Error).message);
         }
     };
 
@@ -110,7 +87,7 @@ export function LoginForm({ enableRegistration, authSettings }: { enableRegistra
                     </form>
                 )}
 
-                {!mfaRequired && (
+                {!mfaRequired && authSettings.enableOidcLogin && (
                     <div className="mt-4">
                         {authSettings.enablePasswordLogin && (
                             <div className="relative">
@@ -125,27 +102,14 @@ export function LoginForm({ enableRegistration, authSettings }: { enableRegistra
                             </div>
                         )}
 
-                        {authSettings.enablePasswordLogin && (
-                            <Button
-                                variant="outline"
-                                type="button"
-                                className="w-full mt-4"
-                                onClick={handlePasskeyLogin}
-                            >
-                                Passkey
-                            </Button>
-                        )}
-
-                        {authSettings.enableOidcLogin && (
-                            <Button
-                                variant="outline"
-                                type="button"
-                                className="w-full mt-2"
-                                onClick={() => window.location.href = '/api/auth/oidc/login'}
-                            >
-                                Login with SSO
-                            </Button>
-                        )}
+                        <Button
+                            variant="outline"
+                            type="button"
+                            className="w-full mt-4"
+                            onClick={() => window.location.href = '/api/auth/oidc/login'}
+                        >
+                            Login with SSO
+                        </Button>
                     </div>
                 )}
 

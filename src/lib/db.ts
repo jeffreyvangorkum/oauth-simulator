@@ -335,47 +335,7 @@ export function updateUserTotpSecret(userId: string, secret: string | null) {
     db.prepare('UPDATE users SET totp_secret = ? WHERE id = ?').run(secret, userId);
 }
 
-export function updateUserChallenge(userId: string, challenge: string | null) {
-    // Check if column exists, if not add it (simple migration for now)
-    try {
-        db.prepare('UPDATE users SET current_challenge = ? WHERE id = ?').run(challenge, userId);
-    } catch (e) {
-        db.exec('ALTER TABLE users ADD COLUMN current_challenge TEXT');
-        db.prepare('UPDATE users SET current_challenge = ? WHERE id = ?').run(challenge, userId);
-    }
-}
 
-export function getUserAuthenticators(userId: string): Authenticator[] {
-    const auths = db.prepare('SELECT * FROM authenticators WHERE user_id = ?').all(userId) as any[];
-    return auths.map(a => ({
-        ...a,
-        credentialBackedUp: !!a.credentialBackedUp
-    }));
-}
-
-export function saveAuthenticator(auth: Authenticator) {
-    const stmt = db.prepare(`
-        INSERT INTO authenticators (credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp, transports, user_id)
-        VALUES (@credentialID, @credentialPublicKey, @counter, @credentialDeviceType, @credentialBackedUp, @transports, @user_id)
-    `);
-    stmt.run({
-        ...auth,
-        credentialBackedUp: auth.credentialBackedUp ? 1 : 0
-    });
-}
-
-export function getAuthenticator(credentialID: string): Authenticator | undefined {
-    const auth = db.prepare('SELECT * FROM authenticators WHERE credentialID = ?').get(credentialID) as any;
-    if (!auth) return undefined;
-    return {
-        ...auth,
-        credentialBackedUp: !!auth.credentialBackedUp
-    };
-}
-
-export function updateAuthenticatorCounter(credentialID: string, counter: number) {
-    db.prepare('UPDATE authenticators SET counter = ? WHERE credentialID = ?').run(counter, credentialID);
-}
 
 // Client functions
 export function getClientsByUserId(userId: string): Client[] {

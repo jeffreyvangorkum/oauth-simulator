@@ -80,38 +80,6 @@ export async function verifyTotpAction(secret: string, token: string) {
     return { success };
 }
 
-// WebAuthn Actions
-import {
-    generateWebAuthnRegistrationOptions,
-    verifyWebAuthnRegistration,
-    generateWebAuthnLoginOptions,
-    verifyWebAuthnLogin
-} from '@/lib/auth';
-
-export async function generateWebAuthnRegistrationOptionsAction() {
-    const session = await getSession();
-    if (!session) throw new Error('Unauthorized');
-    return generateWebAuthnRegistrationOptions(session.id);
-}
-
-export async function verifyWebAuthnRegistrationAction(response: any) {
-    const session = await getSession();
-    if (!session) throw new Error('Unauthorized');
-    return verifyWebAuthnRegistration(session.id, response);
-}
-
-export async function generateWebAuthnLoginOptionsAction(username: string) {
-    return generateWebAuthnLoginOptions(username);
-}
-
-export async function verifyWebAuthnLoginAction(username: string, response: any) {
-    const result = await verifyWebAuthnLogin(username, response);
-    if (result.success) {
-        redirect('/');
-    }
-    return result;
-}
-
 export async function saveClientAction(data: Omit<OAuthClient, 'id'> & { id?: string }) {
     const client: OAuthClient = {
         ...data,
