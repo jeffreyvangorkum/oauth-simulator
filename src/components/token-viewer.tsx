@@ -25,7 +25,8 @@ export function TokenViewer({
     isRefreshing,
     hideDecoded = false,
     jwksUrl,
-    appUrl
+    appUrl,
+    refreshedAt
 }: {
     token: string;
     label: string;
@@ -35,6 +36,7 @@ export function TokenViewer({
     hideDecoded?: boolean;
     jwksUrl?: string;
     appUrl?: string;
+    refreshedAt?: Date | null;
 }) {
     const [decoded, setDecoded] = useState<DecodedToken | null>(null);
     const [copied, setCopied] = useState(false);
@@ -85,6 +87,11 @@ export function TokenViewer({
                             <Badge variant="outline" className="text-xs font-normal lowercase">
                                 {grantType}
                             </Badge>
+                        )}
+                        {refreshedAt && (
+                            <span className="text-xs text-muted-foreground">
+                                Refreshed at {refreshedAt.toLocaleTimeString()}
+                            </span>
                         )}
                         {jwksUrl && (
                             <div className="ml-2">

@@ -27,6 +27,7 @@ export default function ClientView({ client, appUrl }: { client: OAuthClient; ap
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
 
     useEffect(() => {
         const success = searchParams.get('success');
@@ -36,6 +37,7 @@ export default function ClientView({ client, appUrl }: { client: OAuthClient; ap
         if (success === 'true' && tokensParam) {
             try {
                 setTokens(JSON.parse(tokensParam));
+                setRefreshedAt(null); // Reset timestamp for new tokens
                 // Clean up URL
                 router.replace(`/client/${client.id}`);
             } catch (e) {
@@ -73,6 +75,7 @@ export default function ClientView({ client, appUrl }: { client: OAuthClient; ap
     const handleClientCredentialsFlow = async () => {
         setLoading(true);
         setError(null);
+        setRefreshedAt(null); // Reset timestamp for new tokens
         try {
             const result = await executeClientCredentialsFlow(client.id);
             if (result.success) {
@@ -95,6 +98,7 @@ export default function ClientView({ client, appUrl }: { client: OAuthClient; ap
             const result = await executeRefreshTokenFlow(client.id, tokens.refresh_token);
             if (result.success) {
                 setTokens(result.tokens as TokenResponse);
+                setRefreshedAt(new Date()); // Set timestamp when tokens are refreshed
             } else {
                 setError(result.error as string);
             }
@@ -187,6 +191,7 @@ export default function ClientView({ client, appUrl }: { client: OAuthClient; ap
                                 onRefresh={handleRefreshTokenFlow}
                                 isRefreshing={refreshing}
                                 hideDecoded={true}
+                                refreshedAt={refreshedAt}
                             />
                         )}
                         <div className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md overflow-auto">

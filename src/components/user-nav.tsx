@@ -12,19 +12,30 @@ import {
 import { logoutAction } from '@/app/actions';
 import Link from 'next/link';
 import { User } from 'lucide-react';
+import { getGravatarUrl } from '@/lib/gravatar';
 
 interface UserNavProps {
-    user: { username: string } | null;
+    user: { username: string; email?: string | null } | null;
 }
 
 export function UserNav({ user }: UserNavProps) {
     if (!user) return null;
 
+    const gravatarUrl = getGravatarUrl(user.email, 32);
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <User className="h-5 w-5" />
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
+                    {user.email ? (
+                        <img
+                            src={gravatarUrl}
+                            alt={user.username}
+                            className="h-8 w-8 rounded-full"
+                        />
+                    ) : (
+                        <User className="h-5 w-5" />
+                    )}
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -43,6 +54,9 @@ export function UserNav({ user }: UserNavProps) {
                         <DropdownMenuSeparator />
                     </>
                 )}
+                <DropdownMenuItem asChild>
+                    <Link href="/profile">Profile</Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                     <Link href="/settings">Settings</Link>
                 </DropdownMenuItem>

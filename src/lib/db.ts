@@ -323,6 +323,10 @@ export function updateUserPassword(id: string, passwordHash: string) {
     db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(passwordHash, id);
 }
 
+export function updateUserEmail(id: string, email: string | null) {
+    db.prepare('UPDATE users SET email = ? WHERE id = ?').run(email, id);
+}
+
 export function updateUserStatus(id: string, disabled: boolean) {
     db.prepare('UPDATE users SET disabled = ? WHERE id = ?').run(disabled ? 1 : 0, id);
 }

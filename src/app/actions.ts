@@ -543,3 +543,57 @@ export async function discoverOidcConfigurationAction(url: string) {
         return { success: false, error: e.message };
     }
 }
+
+// Profile Management Actions
+import { updateUserEmail, getUser } from '@/lib/db';
+
+export async function updateProfileEmailAction(email: string) {
+    try {
+        const session = await getSession();
+        if (!session) throw new Error('Unauthorized');
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (email && !emailRegex.test(email)) {
+            return { success: false, error: 'Invalid email format' };
+        }
+
+        updateUserEmail(session.id, email || null);
+        revalidatePath('/profile');
+        return { success: true };
+    } catch (e: any) {
+        if (e.message?.includes('UNIQUE')) {
+            return { success: false, error: 'Email already in use' };
+        }
+        return { success: false, error: e.message };
+    }
+}
+
+export async function changePasswordAction(currentPassword: string, newPassword: string) {
+    try {
+        const session = await getSession();
+        if (!session) throw new Error('Unauthorized');
+
+        // Validate password length
+        if (newPassword.length < 8) {
+            return { success: false, error: 'Password must be at least 8 characters' };
+        }
+
+        // Get user and verify current password
+        const user = getUser(session.id);
+        if (!user) throw new Error('User not found');
+
+        const isValid = await bcrypt.compare(currentPassword, user.password_hash);
+        if (!isValid) {
+            return { success: false, error: 'Current password is incorrect' };
+        }
+
+        // Hash and update new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        updateUserPassword(session.id, hashedPassword);
+
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
