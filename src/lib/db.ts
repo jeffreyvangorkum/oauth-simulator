@@ -97,7 +97,9 @@ try {
 
     const hasEmail = userColumns.some(col => col.name === 'email');
     if (!hasEmail) {
-        db.exec('ALTER TABLE users ADD COLUMN email TEXT UNIQUE');
+        // Note: Cannot add UNIQUE constraint to existing table in SQLite
+        // New installations will have UNIQUE from CREATE TABLE statement
+        db.exec('ALTER TABLE users ADD COLUMN email TEXT');
         logger.info('Migrated users table: added email column');
     } else {
         logger.debug('Email column already exists in users table');
