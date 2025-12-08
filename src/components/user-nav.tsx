@@ -29,8 +29,9 @@ export function UserNav({ user }: UserNavProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">{user.username}</p>
+                    <div className="flex flex-col space-y-1 px-2 py-1.5">
+                        <p className="text-sm font-semibold leading-none text-foreground">{user.username}</p>
+                        <p className="text-xs leading-none text-muted-foreground">Signed in</p>
                     </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />

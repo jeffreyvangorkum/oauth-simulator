@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { saveClientAction } from '@/app/actions';
-import { Plus, Pencil, X } from 'lucide-react';
+import { Plus, Pencil, X, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { OAuthClient } from '@/lib/config';
 import { Badge } from '@/components/ui/badge';
 
@@ -53,6 +53,12 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
         client?.scope ? client.scope.split(' ').filter(Boolean) : []
     );
     const [scopeInput, setScopeInput] = useState('');
+
+    // URL field visibility state
+    const [showAuthUrl, setShowAuthUrl] = useState(false);
+    const [showTokenUrl, setShowTokenUrl] = useState(false);
+    const [showJwksUrl, setShowJwksUrl] = useState(false);
+    const [showEndSessionUrl, setShowEndSessionUrl] = useState(false);
 
     // Reset state when client prop changes or dialog opens
     useEffect(() => {
@@ -194,34 +200,9 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md mb-4">
-                    <Label htmlFor="oidcUrl" className="text-xs font-semibold uppercase text-neutral-500 mb-2 block">
-                        Auto-configure from OIDC
-                    </Label>
-                    <div className="flex gap-2">
-                        <Input
-                            id="oidcUrl"
-                            placeholder="e.g. https://accounts.google.com"
-                            value={oidcUrl}
-                            onChange={(e) => setOidcUrl(e.target.value)}
-                            className="flex-1"
-                        />
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={handleDiscover}
-                            disabled={discovering || !oidcUrl}
-                        >
-                            {discovering ? '...' : 'Fetch'}
-                        </Button>
-                    </div>
-                    {discoveryError && (
-                        <p className="text-xs text-red-500 mt-2">{discoveryError}</p>
-                    )}
-                </div>
-
                 <form action={handleSubmit}>
                     <div className="grid gap-4 py-4">
+                        {/* User Input Fields - Top Section */}
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="name" className="text-right">Name</Label>
                             <Input id="name" name="name" placeholder="My App" className="col-span-3" required defaultValue={client?.name} />
@@ -233,73 +214,6 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="clientSecret" className="text-right">Secret</Label>
                             <Input id="clientSecret" name="clientSecret" type="password" className="col-span-3" required defaultValue={client?.clientSecret} />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="authorizeUrl" className="text-right">Auth URL</Label>
-                            <Input
-                                id="authorizeUrl"
-                                name="authorizeUrl"
-                                placeholder="https://..."
-                                className="col-span-3"
-                                required
-                                value={authUrl}
-                                onChange={(e) => setAuthUrl(e.target.value)}
-                            />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="tokenUrl" className="text-right">Token URL</Label>
-                            <Input
-                                id="tokenUrl"
-                                name="tokenUrl"
-                                placeholder="https://..."
-                                className="col-span-3"
-                                required
-                                value={tokenUrl}
-                                onChange={(e) => setTokenUrl(e.target.value)}
-                            />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="jwksUrl" className="text-right">JWKS URL</Label>
-                            <Input
-                                id="jwksUrl"
-                                name="jwksUrl"
-                                placeholder="https://.../.well-known/jwks.json"
-                                className="col-span-3"
-                                value={jwksUrl}
-                                onChange={(e) => setJwksUrl(e.target.value)}
-                            />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="endSessionEndpoint" className="text-right">End Session</Label>
-                            <Input
-                                id="endSessionEndpoint"
-                                name="endSessionEndpoint"
-                                placeholder="https://..."
-                                className="col-span-3"
-                                value={endSessionEndpoint}
-                                onChange={(e) => setEndSessionEndpoint(e.target.value)}
-                            />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="redirectUri" className="text-right">Redirect URI</Label>
-                            <Input
-                                id="redirectUri"
-                                name="redirectUri"
-                                className="col-span-3"
-                                required
-                                value={redirectUri}
-                                onChange={(e) => setRedirectUri(e.target.value)}
-                            />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="postLogoutRedirectUri" className="text-right">Post Logout</Label>
-                            <Input
-                                id="postLogoutRedirectUri"
-                                name="postLogoutRedirectUri"
-                                className="col-span-3"
-                                value={postLogoutRedirectUri}
-                                onChange={(e) => setPostLogoutRedirectUri(e.target.value)}
-                            />
                         </div>
                         <div className="grid grid-cols-4 items-start gap-4">
                             <Label htmlFor="scopeInput" className="text-right pt-2">Scope</Label>
@@ -328,7 +242,176 @@ export function ClientDialog({ client, trigger, defaultDomain = 'http://localhos
                                 </div>
                             </div>
                         </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="redirectUri" className="text-right">Redirect URI</Label>
+                            <Input
+                                id="redirectUri"
+                                name="redirectUri"
+                                className="col-span-3"
+                                required
+                                value={redirectUri}
+                                onChange={(e) => setRedirectUri(e.target.value)}
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="postLogoutRedirectUri" className="text-right">Post Logout</Label>
+                            <Input
+                                id="postLogoutRedirectUri"
+                                name="postLogoutRedirectUri"
+                                className="col-span-3"
+                                value={postLogoutRedirectUri}
+                                onChange={(e) => setPostLogoutRedirectUri(e.target.value)}
+                            />
+                        </div>
 
+                        {/* Divider */}
+                        <div className="border-t my-2"></div>
+
+                        {/* Auto-configure Section - Bottom */}
+                        <div className="bg-neutral-100 dark:bg-neutral-900 p-4 rounded-md">
+                            <Label htmlFor="oidcUrl" className="text-xs font-semibold uppercase text-neutral-500 mb-2 block">
+                                Auto-configure from OIDC
+                            </Label>
+                            <div className="flex gap-2">
+                                <Input
+                                    id="oidcUrl"
+                                    placeholder="e.g. https://accounts.google.com"
+                                    value={oidcUrl}
+                                    onChange={(e) => setOidcUrl(e.target.value)}
+                                    className="flex-1"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={handleDiscover}
+                                    disabled={discovering || !oidcUrl}
+                                >
+                                    {discovering ? '...' : 'Fetch'}
+                                </Button>
+                            </div>
+                            {discoveryError && (
+                                <p className="text-xs text-red-500 mt-2">{discoveryError}</p>
+                            )}
+                        </div>
+
+                        {/* OAuth Endpoint URLs - Collapsible */}
+                        <div className="space-y-3 mt-2">
+                            {/* Auth URL */}
+                            <div>
+                                <div
+                                    className="flex items-center gap-2 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900 p-2 rounded transition-colors"
+                                    onClick={() => setShowAuthUrl(!showAuthUrl)}
+                                >
+                                    {authUrl ? (
+                                        <Check className="h-4 w-4 text-green-600 dark:text-green-500" />
+                                    ) : (
+                                        <div className="h-4 w-4" />
+                                    )}
+                                    <Label className="cursor-pointer flex-1 text-sm font-medium">Auth URL</Label>
+                                    {showAuthUrl ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                </div>
+                                {showAuthUrl && (
+                                    <div className="mt-2 ml-6">
+                                        <Input
+                                            id="authorizeUrl"
+                                            name="authorizeUrl"
+                                            placeholder="https://..."
+                                            required
+                                            value={authUrl}
+                                            onChange={(e) => setAuthUrl(e.target.value)}
+                                        />
+                                    </div>
+                                )}
+                                {!showAuthUrl && <input type="hidden" name="authorizeUrl" value={authUrl} />}
+                            </div>
+
+                            {/* Token URL */}
+                            <div>
+                                <div
+                                    className="flex items-center gap-2 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900 p-2 rounded transition-colors"
+                                    onClick={() => setShowTokenUrl(!showTokenUrl)}
+                                >
+                                    {tokenUrl ? (
+                                        <Check className="h-4 w-4 text-green-600 dark:text-green-500" />
+                                    ) : (
+                                        <div className="h-4 w-4" />
+                                    )}
+                                    <Label className="cursor-pointer flex-1 text-sm font-medium">Token URL</Label>
+                                    {showTokenUrl ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                </div>
+                                {showTokenUrl && (
+                                    <div className="mt-2 ml-6">
+                                        <Input
+                                            id="tokenUrl"
+                                            name="tokenUrl"
+                                            placeholder="https://..."
+                                            required
+                                            value={tokenUrl}
+                                            onChange={(e) => setTokenUrl(e.target.value)}
+                                        />
+                                    </div>
+                                )}
+                                {!showTokenUrl && <input type="hidden" name="tokenUrl" value={tokenUrl} />}
+                            </div>
+
+                            {/* JWKS URL */}
+                            <div>
+                                <div
+                                    className="flex items-center gap-2 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900 p-2 rounded transition-colors"
+                                    onClick={() => setShowJwksUrl(!showJwksUrl)}
+                                >
+                                    {jwksUrl ? (
+                                        <Check className="h-4 w-4 text-green-600 dark:text-green-500" />
+                                    ) : (
+                                        <div className="h-4 w-4" />
+                                    )}
+                                    <Label className="cursor-pointer flex-1 text-sm font-medium">JWKS URL</Label>
+                                    {showJwksUrl ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                </div>
+                                {showJwksUrl && (
+                                    <div className="mt-2 ml-6">
+                                        <Input
+                                            id="jwksUrl"
+                                            name="jwksUrl"
+                                            placeholder="https://.../.well-known/jwks.json"
+                                            value={jwksUrl}
+                                            onChange={(e) => setJwksUrl(e.target.value)}
+                                        />
+                                    </div>
+                                )}
+                                {!showJwksUrl && <input type="hidden" name="jwksUrl" value={jwksUrl} />}
+                            </div>
+
+                            {/* End Session URL */}
+                            <div>
+                                <div
+                                    className="flex items-center gap-2 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900 p-2 rounded transition-colors"
+                                    onClick={() => setShowEndSessionUrl(!showEndSessionUrl)}
+                                >
+                                    {endSessionEndpoint ? (
+                                        <Check className="h-4 w-4 text-green-600 dark:text-green-500" />
+                                    ) : (
+                                        <div className="h-4 w-4" />
+                                    )}
+                                    <Label className="cursor-pointer flex-1 text-sm font-medium">End Session URL</Label>
+                                    {showEndSessionUrl ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                </div>
+                                {showEndSessionUrl && (
+                                    <div className="mt-2 ml-6">
+                                        <Input
+                                            id="endSessionEndpoint"
+                                            name="endSessionEndpoint"
+                                            placeholder="https://..."
+                                            value={endSessionEndpoint}
+                                            onChange={(e) => setEndSessionEndpoint(e.target.value)}
+                                        />
+                                    </div>
+                                )}
+                                {!showEndSessionUrl && <input type="hidden" name="endSessionEndpoint" value={endSessionEndpoint} />}
+                            </div>
+                        </div>
+
+                        {/* Custom Attributes */}
                         <div className="border-t pt-4 mt-2">
                             <div className="flex justify-between items-center mb-2">
                                 <Label className="text-sm font-semibold">Custom Attributes</Label>

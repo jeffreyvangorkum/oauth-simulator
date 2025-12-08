@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Moon, Sun, Laptop } from 'lucide-react';
+import { Moon, Sun, Laptop, Check } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export function ThemeToggle() {
-    const { setTheme } = useTheme();
+    const { theme, setTheme } = useTheme();
 
     return (
         <DropdownMenu>
@@ -26,15 +26,27 @@ export function ThemeToggle() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => setTheme('light')}>
-                    <Sun className="mr-2 h-4 w-4" />
+                    {theme === 'light' ? (
+                        <Check className="mr-2 h-4 w-4 text-green-600 dark:text-green-500" />
+                    ) : (
+                        <Sun className="mr-2 h-4 w-4" />
+                    )}
                     Light
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTheme('dark')}>
-                    <Moon className="mr-2 h-4 w-4" />
+                    {theme === 'dark' ? (
+                        <Check className="mr-2 h-4 w-4 text-green-600 dark:text-green-500" />
+                    ) : (
+                        <Moon className="mr-2 h-4 w-4" />
+                    )}
                     Dark
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTheme('system')}>
-                    <Laptop className="mr-2 h-4 w-4" />
+                    {theme === 'system' ? (
+                        <Check className="mr-2 h-4 w-4 text-green-600 dark:text-green-500" />
+                    ) : (
+                        <Laptop className="mr-2 h-4 w-4" />
+                    )}
                     System
                 </DropdownMenuItem>
             </DropdownMenuContent>
