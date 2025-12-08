@@ -10,6 +10,7 @@ if (!fs.existsSync(DB_DIR)) {
     fs.mkdirSync(DB_DIR, { recursive: true });
 }
 const DB_PATH = path.join(DB_DIR, 'database.sqlite');
+logger.info(`Database path: ${DB_PATH}`);
 const db = new Database(DB_PATH);
 
 // Initialize schema
@@ -98,6 +99,8 @@ try {
     if (!hasEmail) {
         db.exec('ALTER TABLE users ADD COLUMN email TEXT UNIQUE');
         logger.info('Migrated users table: added email column');
+    } else {
+        logger.debug('Email column already exists in users table');
     }
 
     // Migrate env vars to system settings if empty
