@@ -17,7 +17,7 @@ A powerful, modern web application designed to help developers test, debug, and 
 - **Logout Support**: End session endpoint integration for proper logout flows.
 - **Mock API Endpoint**: Internal mock API endpoint for testing HTTP requests.
 - **System Settings**: Configure authentication methods (SSO/Local) and OIDC details via UI.
-- **Secure Access**: Protected by built-in authentication with Multi-Factor Authentication (TOTP & WebAuthn).
+- **Secure Access**: Protected by built-in authentication with Multi-Factor Authentication (TOTP).
 - **Modern UI**: Clean, responsive interface with Dark/Light mode support.
 - **Admin Panel**: Manage users and their clients (admin account only).
 
@@ -42,7 +42,7 @@ A powerful, modern web application designed to help developers test, debug, and 
 
 - **Registration**: Create a new account on the registration page.
 - **Login**: Log in with your username and password or via SSO (OIDC).
-- **MFA**: Enable TOTP or WebAuthn (Passkeys) in the Settings page for enhanced security.
+- **MFA**: Enable TOTP in the Settings page for enhanced security.
 
 ## Configuration
 
@@ -56,9 +56,6 @@ The application uses the following environment variables (defined in `docker-com
 - `OIDC_CLIENT_SECRET`: Client Secret for the configured OIDC provider (optional if configured via UI).
 - `ADMIN_USER_PWD`: Initial password for the default `admin` user. Updates the admin password on startup if set.
 - `LOG_LEVEL`: Controls application logging verbosity. Available levels: `ERROR`, `WARN`, `INFO`, `DEBUG` (default: `INFO`). Set to `DEBUG` for detailed troubleshooting.
-- `RP_ID`: Relying Party ID for WebAuthn (Passkey) authentication. Should match your domain (default: `localhost`).
-- `RP_NAME`: Display name for WebAuthn authentication (default: `OAuth Simulator`).
-- `RP_ORIGIN`: Origin URL for WebAuthn authentication. Must match the URL users access the app from (default: `http://localhost:3000`).
 - `NODE_ENV`: Node environment (default: `production`).
 
 ---
