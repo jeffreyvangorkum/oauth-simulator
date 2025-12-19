@@ -21,6 +21,13 @@ if (!process.env.NEXT_PUBLIC_APP_VERSION) {
   }
 }
 
+import withSerwistInit from "@serwist/next";
+
+const withSerwist = withSerwistInit({
+  swSrc: "src/sw.ts",
+  swDest: "public/sw.js",
+});
+
 const nextConfig: NextConfig = {
   reactCompiler: true,
   output: "standalone",
@@ -29,4 +36,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSerwist(nextConfig);
