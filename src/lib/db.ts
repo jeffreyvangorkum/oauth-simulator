@@ -335,6 +335,31 @@ export function updateUserTotpSecret(userId: string, secret: string | null) {
     db.prepare('UPDATE users SET totp_secret = ? WHERE id = ?').run(secret, userId);
 }
 
+export function updateUserChallenge(userId: string, challenge: string | null) {
+    db.prepare('UPDATE users SET current_challenge = ? WHERE id = ?').run(challenge, userId);
+}
+
+// Authenticator functions
+export function getUserAuthenticators(userId: string): Authenticator[] {
+    return db.prepare('SELECT * FROM authenticators WHERE user_id = ?').all(userId) as Authenticator[];
+}
+
+export function createAuthenticator(authenticator: Authenticator) {
+    const stmt = db.prepare(`
+        INSERT INTO authenticators (credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp, transports, user_id)
+        VALUES (@credentialID, @credentialPublicKey, @counter, @credentialDeviceType, @credentialBackedUp, @transports, @user_id)
+    `);
+    stmt.run(authenticator);
+}
+
+export function updateAuthenticatorCounter(credentialID: string, counter: number) {
+    db.prepare('UPDATE authenticators SET counter = ? WHERE credentialID = ?').run(counter, credentialID);
+}
+
+export function deleteAuthenticator(credentialID: string, userId: string) {
+    db.prepare('DELETE FROM authenticators WHERE credentialID = ? AND user_id = ?').run(credentialID, userId);
+}
+
 
 
 // Client functions

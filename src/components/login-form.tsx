@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { loginAction, loginWithMfaAction } from '@/app/actions';
+import { loginAction, loginWithMfaAction, generateAuthenticationOptionsAction, verifyAuthenticationAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
+import { Fingerprint } from 'lucide-react';
+import { startAuthentication } from '@simplewebauthn/browser';
 
 export function LoginForm({ enableRegistration, authSettings }: { enableRegistration: boolean, authSettings: { enablePasswordLogin: boolean, enableOidcLogin: boolean } }) {
     const [username, setUsername] = useState('');
@@ -14,6 +16,7 @@ export function LoginForm({ enableRegistration, authSettings }: { enableRegistra
     const [error, setError] = useState('');
     const [mfaRequired, setMfaRequired] = useState(false);
     const [mfaToken, setMfaToken] = useState('');
+    const [passkeyLoading, setPasskeyLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,6 +38,32 @@ export function LoginForm({ enableRegistration, authSettings }: { enableRegistra
                 setError(result.error || 'Login failed');
             }
         }
+    };
+
+    const handlePasskeyLogin = async () => {
+        if (!username) {
+            setError('Please enter your username first');
+            return;
+        }
+
+        setPasskeyLoading(true);
+        setError('');
+
+        try {
+            const options = await generateAuthenticationOptionsAction(username);
+            const authResp = await startAuthentication(options as any);
+            const result = await verifyAuthenticationAction(username, authResp);
+
+            if (result.success) {
+                window.location.href = '/';
+            } else {
+                setError('Passkey authentication failed');
+            }
+        } catch (error: any) {
+            setError(error.message || 'Passkey login failed');
+        }
+
+        setPasskeyLoading(false);
     };
 
     return (
@@ -84,6 +113,19 @@ export function LoginForm({ enableRegistration, authSettings }: { enableRegistra
                         <Button type="submit" className="w-full">
                             {mfaRequired ? 'Verify' : 'Login'}
                         </Button>
+
+                        {!mfaRequired && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full flex items-center gap-2"
+                                onClick={handlePasskeyLogin}
+                                disabled={passkeyLoading}
+                            >
+                                <Fingerprint className="h-4 w-4" />
+                                {passkeyLoading ? 'Authenticating...' : 'Login with Passkey'}
+                            </Button>
+                        )}
                     </form>
                 )}
 

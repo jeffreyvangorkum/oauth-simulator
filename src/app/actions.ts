@@ -565,3 +565,57 @@ export async function changePasswordAction(currentPassword: string, newPassword:
         return { success: false, error: e.message };
     }
 }
+
+// WebAuthn Actions
+import {
+    getRegistrationOptions,
+    verifyRegistration,
+    getAuthenticationOptions,
+    verifyAuthentication
+} from '@/lib/auth';
+
+export async function generateRegistrationOptionsAction() {
+    const session = await getSession();
+    if (!session) throw new Error('Unauthorized');
+
+    const user = getUser(session.id);
+    if (!user) throw new Error('User not found');
+
+    return getRegistrationOptions(user);
+}
+
+export async function verifyRegistrationAction(body: any) {
+    const session = await getSession();
+    if (!session) throw new Error('Unauthorized');
+
+    const user = getUser(session.id);
+    if (!user) throw new Error('User not found');
+
+    return verifyRegistration(user, body);
+}
+
+export async function generateAuthenticationOptionsAction(username: string) {
+    return getAuthenticationOptions(username);
+}
+
+export async function verifyAuthenticationAction(username: string, body: any) {
+    return verifyAuthentication(username, body);
+}
+
+export async function deleteAuthenticatorAction(credentialId: string) {
+    const session = await getSession();
+    if (!session) throw new Error('Unauthorized');
+
+    const { deleteAuthenticator } = await import('@/lib/db');
+    deleteAuthenticator(credentialId, session.id);
+    revalidatePath('/profile');
+    return { success: true };
+}
+
+export async function getUserAuthenticatorsAction() {
+    const session = await getSession();
+    if (!session) return [];
+
+    const { getUserAuthenticators } = await import('@/lib/db');
+    return getUserAuthenticators(session.id);
+}

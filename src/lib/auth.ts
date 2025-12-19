@@ -1,8 +1,19 @@
 import { cookies } from 'next/headers';
 import { SignJWT, jwtVerify } from 'jose';
-import { getUserByUsername, getUserByEmail, createUser, User } from './db';
+import { getUserByUsername, getUserByEmail, createUser, User, updateUserChallenge, getUserAuthenticators, createAuthenticator, updateAuthenticatorCounter } from './db';
 import bcrypt from 'bcryptjs';
 import logger from './logger';
+import {
+    generateRegistrationOptions,
+    verifyRegistrationResponse,
+    generateAuthenticationOptions,
+    verifyAuthenticationResponse,
+} from '@simplewebauthn/server';
+import { isoUint8Array, isoBase64URL } from '@simplewebauthn/server/helpers';
+
+const RP_NAME = 'OAuth Simulator';
+const RP_ID = process.env.RP_ID || 'localhost';
+const ORIGIN = process.env.APP_URL || `http://${RP_ID}:3000`;
 
 const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET || 'default-secret-key-change-me');
 const AUTH_COOKIE_NAME = 'oauth_sim_session';
@@ -184,5 +195,126 @@ export async function verifyTotpAndEnable(userId: string, secret: string, token:
 
 export async function verifyTotp(secret: string, token: string): Promise<boolean> {
     return authenticator.verify({ token, secret });
+}
+
+// WebAuthn - Passkeys
+export async function getRegistrationOptions(user: User) {
+    const userAuthenticators = getUserAuthenticators(user.id);
+
+    const options = await generateRegistrationOptions({
+        rpName: RP_NAME,
+        rpID: RP_ID,
+        userID: isoUint8Array.fromUTF8String(user.id),
+        userName: user.username,
+        attestationType: 'none',
+        excludeCredentials: userAuthenticators.map((auth) => ({
+            id: auth.credentialID,
+            type: 'public-key',
+            transports: auth.transports ? JSON.parse(auth.transports) : undefined,
+        })),
+        authenticatorSelection: {
+            residentKey: 'preferred',
+            userVerification: 'preferred',
+            authenticatorAttachment: 'platform',
+        },
+    });
+
+    updateUserChallenge(user.id, options.challenge);
+    return options;
+}
+
+export async function verifyRegistration(user: User, body: any) {
+    const expectedChallenge = user.current_challenge;
+    if (!expectedChallenge) {
+        throw new Error('No challenge found for user');
+    }
+
+    const verification = await verifyRegistrationResponse({
+        response: body,
+        expectedChallenge,
+        expectedOrigin: ORIGIN,
+        expectedRPID: RP_ID,
+    });
+
+    if (verification.verified && verification.registrationInfo) {
+        const { credential } = verification.registrationInfo as any;
+
+        createAuthenticator({
+            credentialID: isoBase64URL.fromBuffer(credential.id),
+            credentialPublicKey: isoBase64URL.fromBuffer(credential.publicKey),
+            counter: credential.counter,
+            credentialDeviceType: (verification.registrationInfo as any).credentialDeviceType,
+            credentialBackedUp: (verification.registrationInfo as any).credentialBackedUp ? 1 : 0,
+            user_id: user.id,
+            transports: JSON.stringify(body.response.transports || []),
+        } as any);
+
+        updateUserChallenge(user.id, null);
+        return { success: true };
+    }
+
+    return { success: false };
+}
+
+export async function getAuthenticationOptions(username: string) {
+    const user = getUserByUsername(username);
+    if (!user) {
+        throw new Error('User not found');
+    }
+
+    const userAuthenticators = getUserAuthenticators(user.id);
+
+    const options = await generateAuthenticationOptions({
+        rpID: RP_ID,
+        allowCredentials: userAuthenticators.map((auth) => ({
+            id: auth.credentialID,
+            type: 'public-key',
+            transports: auth.transports ? JSON.parse(auth.transports) : undefined,
+        })),
+        userVerification: 'preferred',
+    });
+
+    updateUserChallenge(user.id, options.challenge);
+    return options;
+}
+
+export async function verifyAuthentication(username: string, body: any) {
+    const user = getUserByUsername(username);
+    if (!user) {
+        throw new Error('User not found');
+    }
+
+    const expectedChallenge = user.current_challenge;
+    if (!expectedChallenge) {
+        throw new Error('No challenge found for user');
+    }
+
+    const userAuthenticators = getUserAuthenticators(user.id);
+    const authenticator = userAuthenticators.find((auth) => auth.credentialID === body.id);
+
+    if (!authenticator) {
+        throw new Error('Authenticator not found');
+    }
+
+    const verification = await verifyAuthenticationResponse({
+        response: body,
+        expectedChallenge,
+        expectedOrigin: ORIGIN,
+        expectedRPID: RP_ID,
+        credential: {
+            id: authenticator.credentialID,
+            publicKey: isoBase64URL.toBuffer(authenticator.credentialPublicKey),
+            counter: authenticator.counter,
+            transports: authenticator.transports ? JSON.parse(authenticator.transports) : undefined,
+        },
+    });
+
+    if (verification.verified) {
+        updateAuthenticatorCounter(authenticator.credentialID, verification.authenticationInfo.newCounter);
+        updateUserChallenge(user.id, null);
+        return createSession(user);
+    }
+
+    return { success: false };
 }
 
